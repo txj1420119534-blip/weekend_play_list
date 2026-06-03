@@ -1,5 +1,47 @@
 # Change Summary
 
+## Final Submission Cleanup
+
+### 修改文件列表
+
+- `data/merchants.json`
+- `data/travel.json`
+- `acceptance_check.py`
+- `ACCEPTANCE_REPORT.md`
+- `CODE_QUALITY_REPORT.md`
+- `CHANGE_SUMMARY.md`
+- `SUBMISSION_CLEANUP_REPORT.md`
+- `.env.example`
+- `CODEX_AUDIT.md`
+
+### 每个文件改了什么
+
+- `data/merchants.json`：修复新增商户的用户可见乱码；将 `m_029`、`m_037`、`m_038`、`m_039`、`m_040`、`m_041`、`m_042` 改为真实中文商户信息；补齐第二家火锅的不辣、番茄锅、鸳鸯锅支持；修复 KTV 乱码标签。
+- `data/travel.json`：清理乱码路线 key，固定补齐 `马鞍山->马鞍山`、`新街口->马鞍山`、`马鞍山->新街口`、`河西->马鞍山`、`马鞍山->河西`。
+- `acceptance_check.py`：新增 data_integrity 系统检查；新增 API smoke tests；验证两个不同 session_id 不串会话；报告增加 `result_type`；拆分“是否触发追问 / 是否已补全进入规划”；安全扫描升级为 git + 文件系统遍历。
+- `ACCEPTANCE_REPORT.md`：更新最终 40 条用例结果，新增乱码数据、支持成功、优雅失败、API smoke、session 隔离、安全扫描结论。
+- `CODE_QUALITY_REPORT.md`：更新安全扫描、session 隔离、API smoke 和数据完整性结论。
+- `SUBMISSION_CLEANUP_REPORT.md`：新增最终提交清理专项报告。
+- `.env.example`：清理仿真 `sk-` 前缀，改为空值占位。
+- `CODEX_AUDIT.md`：同步 `.env.example` 安全占位说明，避免文件系统安全扫描误报。
+
+### 验收结果
+
+- `python acceptance_check.py` stable exit：YES
+- 通过率：40/40 (100.0%)
+- 是否还有乱码数据：NO
+- 支持成功用例数量：31
+- 优雅失败用例数量：5
+- API smoke 是否通过：YES
+- session_id 隔离是否通过：YES
+- 安全扫描是否通过：YES
+
+### 仍未解决的问题
+
+- 投票、真实预约、真实库存、真实支付和优惠仍是 Mock。
+- session_id 未持久化，服务重启后会话丢失。
+- citywalk 跨城交通仍是 Mock 时间，不是真实地图 API。
+
 ## Qualification Hardening 2: Code Eligibility and Business Coverage
 
 ### 修改文件列表

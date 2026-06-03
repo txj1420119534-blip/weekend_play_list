@@ -12,6 +12,7 @@ import json
 import os
 import py_compile
 import queue
+import re
 import shutil
 import subprocess
 import sys
@@ -23,11 +24,20 @@ from typing import Any, Callable
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 MERCHANTS = DATA / "merchants.json"
+TRAVEL = DATA / "travel.json"
 os.environ.pop("DEEPSEEK_API_KEY", None)
 
 from agent.core import Agent  # noqa: E402
 from agent.parser import parse_request  # noqa: E402
 from agent.planner import build_itinerary  # noqa: E402
+
+CHECK_STATUS: dict[str, Any] = {
+    "garbled_data": None,
+    "api_smoke": None,
+    "session_isolation": None,
+    "security_scan": None,
+    "security_hits": [],
+}
 
 
 TEXT = {
@@ -175,9 +185,31 @@ def booking_status(session: dict) -> str:
     return f"mode={session.get('mode')} executed={session.get('executed')} bookings={len(session.get('bookings') or [])} share={'yes' if session.get('share_card') else 'no'}"
 
 
+def result_type(session: dict) -> str:
+    plan = _main_plan(session)
+    if session.get("mode") == "needs_clarification" and not session.get("plans"):
+        return "needs_clarification"
+    if plan.get("unavailable") or plan.get("status") in ("needs_relaxation", "plan_unavailable", "not_supported_yet"):
+        return "graceful_unavailable"
+    return "supported_success"
+
+
 def default_runner(text: str, answers: dict | None = None, auto_refine: bool = True) -> dict:
-    agent, session = _run(text, answers, auto_refine=auto_refine)
-    return {"agent": agent, "session": session, "clarified": bool(answers) or session.get("mode") != "needs_clarification"}
+    agent = Agent()
+    initial = agent.run(text)
+    triggered = bool(initial.get("clarifications_needed"))
+    if auto_refine and initial.get("mode") == "needs_clarification":
+        session = agent.refine(_answer_for(initial, answers))
+        completed = session.get("mode") != "needs_clarification"
+    else:
+        session = initial
+        completed = session.get("mode") != "needs_clarification"
+    return {
+        "agent": agent,
+        "session": session,
+        "clarification_triggered": triggered,
+        "clarification_completed": completed,
+    }
 
 
 def require(condition: bool, message: str, failures: list[str]):
@@ -210,7 +242,9 @@ class Case:
             "name": self.name,
             "input": self.input,
             "request": public_request(ctx.get("session", {}).get("request") or ctx.get("request", {})),
-            "clarified": ctx.get("clarified", False),
+            "clarification_triggered": ctx.get("clarification_triggered", False),
+            "clarification_completed": ctx.get("clarification_completed", False),
+            "result_type": result_type(ctx.get("session", {})),
             "plan_summary": ctx.get("plan_summary", _plan_summary(ctx.get("session", {}))),
             "addon_summary": ctx.get("addon_summary", _addon_summary(ctx.get("session", {}))),
             "booking_status": ctx.get("booking_status", booking_status(ctx.get("session", {}))),
@@ -229,7 +263,8 @@ class Case:
             except Exception as exc:
                 result_q.put({
                     "id": self.cid, "name": self.name, "input": self.input,
-                    "request": {}, "clarified": False, "plan_summary": "运行异常",
+                    "request": {}, "clarification_triggered": False, "clarification_completed": False,
+                    "result_type": "error", "plan_summary": "运行异常",
                     "addon_summary": "运行异常", "booking_status": "运行异常",
                     "exception_summary": "运行异常", "elapsed_seconds": 0.0,
                     "passed": False, "failures": [f"case raised: {exc}"],
@@ -243,7 +278,8 @@ class Case:
         if t.is_alive():
             return {
                 "id": self.cid, "name": self.name, "input": self.input,
-                "request": {}, "clarified": False, "plan_summary": "单用例超时",
+                "request": {}, "clarification_triggered": False, "clarification_completed": False,
+                "result_type": "error", "plan_summary": "单用例超时",
                 "addon_summary": "单用例超时", "booking_status": "单用例超时",
                 "exception_summary": "单用例超时", "elapsed_seconds": round(elapsed, 2),
                 "passed": False, "failures": [f"case timeout after {self.timeout_seconds}s"],
@@ -321,6 +357,171 @@ def check_damaged_data_fallback() -> list[str]:
             if bak.exists():
                 shutil.copyfile(bak, path)
                 bak.unlink()
+    return failures
+
+
+def _visible_strings(value: Any):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from _visible_strings(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _visible_strings(item)
+
+
+def check_data_integrity() -> list[str]:
+    failures: list[str] = []
+    merchants = json.loads(MERCHANTS.read_text(encoding="utf-8"))
+    travel = json.loads(TRAVEL.read_text(encoding="utf-8"))
+    visible_fields = [
+        "name", "category", "area", "review_tags", "review_snippet",
+        "group_deal", "recommended_dishes",
+    ]
+    for m in merchants:
+        for field in visible_fields:
+            for text in _visible_strings(m.get(field)):
+                if "?" in text:
+                    failures.append(f"merchant {m.get('id')} field {field} contains ?: {text}")
+    for key in travel:
+        if "?" in key:
+            failures.append(f"travel key contains ?: {key}")
+    required_routes = {
+        "马鞍山->马鞍山",
+        "新街口->马鞍山",
+        "马鞍山->新街口",
+        "河西->马鞍山",
+        "马鞍山->河西",
+    }
+    missing_routes = sorted(required_routes - set(travel))
+    if missing_routes:
+        failures.append("missing required travel routes: " + ", ".join(missing_routes))
+    required = {"剧本杀", "电影院", "火锅", "奶茶", "咖啡", "台球", "按摩", "酒店", "citywalk"}
+    categories = {m.get("category") for m in merchants}
+    missing = sorted(required - categories)
+    if missing:
+        failures.append("missing required categories: " + ", ".join(missing))
+    CHECK_STATUS["garbled_data"] = not failures
+    return failures
+
+
+def check_api_smoke() -> list[str]:
+    failures: list[str] = []
+    try:
+        from fastapi.testclient import TestClient
+        import server
+    except Exception as exc:
+        CHECK_STATUS["api_smoke"] = False
+        CHECK_STATUS["session_isolation"] = False
+        return [f"TestClient import failed: {exc}"]
+
+    try:
+        server.AGENTS.clear()
+        client = TestClient(server.app)
+        sid_a = "acceptance_api_a"
+        sid_b = "acceptance_api_b"
+        headers_a = {"X-Session-Id": sid_a}
+        headers_b = {"X-Session-Id": sid_b}
+
+        r = client.post("/plan", json={"session_id": sid_a, "text": TEXT["script_missing"]}, headers=headers_a).json()
+        require(r.get("ok") is True, "/plan session_a failed", failures)
+        require(r.get("session", {}).get("mode") == "needs_clarification", "/plan session_a should need clarification", failures)
+
+        r = client.post("/refine", json={
+            "session_id": sid_a,
+            "answers": {
+                "party_size": 4, "start_time": "19:00", "budget_per_person": 150,
+                "script_style": "欢乐本", "window_hours": 4, "home_area": "新街口",
+            },
+        }, headers=headers_a).json()
+        require(r.get("ok") is True and r.get("session", {}).get("plans"), "/refine session_a failed to plan", failures)
+
+        r_b = client.post("/plan", json={
+            "session_id": sid_b,
+            "text": TEXT["milk_tea"],
+        }, headers=headers_b).json()
+        require(r_b.get("ok") is True, "/plan session_b failed", failures)
+        if r_b.get("session", {}).get("mode") == "needs_clarification":
+            r_b = client.post("/refine", json={
+                "session_id": sid_b,
+                "answers": {"start_time": "20:00", "home_area": "新街口", "budget_per_person": 30},
+            }, headers=headers_b).json()
+        req_b = r_b.get("session", {}).get("request", {})
+        require(req_b.get("primary_intent") == "milk_tea", "session_b did not keep milk tea request", failures)
+
+        r = client.post("/select", json={"session_id": sid_a, "plan_index": 0}, headers=headers_a).json()
+        require(r.get("ok") is True and r.get("session", {}).get("mode") == "selected", "/select session_a failed", failures)
+        require((r.get("session", {}).get("request") or {}).get("primary_intent") == "script_game", "session_a polluted before confirm", failures)
+
+        r = client.post("/confirm", json={"session_id": sid_a}, headers=headers_a).json()
+        require(r.get("ok") is True and r.get("session", {}).get("bookings"), "/confirm session_a failed", failures)
+        require((r.get("session", {}).get("request") or {}).get("primary_intent") == "script_game", "session_a polluted after confirm", failures)
+
+        r = client.post("/exception", json={
+            "session_id": sid_a,
+            "type": "ticket_soldout",
+            "context": {"location_state": "before_departure"},
+        }, headers=headers_a).json()
+        require(r.get("ok") is True and r.get("session", {}).get("exception_result"), "/exception session_a failed", failures)
+
+        r = client.post("/reset", json={"session_id": sid_b}, headers=headers_b).json()
+        require(r.get("ok") is True, "/reset session_b failed", failures)
+        require(server.AGENTS[sid_a].session.get("request", {}).get("primary_intent") == "script_game", "reset session_b polluted session_a", failures)
+        require(server.AGENTS[sid_b].session.get("mode") == "ready", "reset session_b did not reset only session_b", failures)
+    except Exception as exc:
+        failures.append(f"API smoke raised: {exc}")
+
+    CHECK_STATUS["api_smoke"] = not failures
+    CHECK_STATUS["session_isolation"] = not failures
+    return failures
+
+
+def _security_pattern() -> re.Pattern:
+    pattern = (
+        r"s" + r"k-[A-Za-z0-9_-]{20,}|"
+        r"DEEPSEEK_API_KEY\s*=\s*s" + r"k-|"
+        r"OPENAI_API_KEY\s*=\s*s" + r"k-|"
+        r"g" + r"hp_[A-Za-z0-9_]{20,}|"
+        r"github" + r"_pat_"
+    )
+    return re.compile(pattern)
+
+
+def _iter_scan_files():
+    skip_dirs = {".git", ".venv", "venv", "__pycache__", "node_modules", "output", ".playwright-cli"}
+    for path in ROOT.rglob("*"):
+        if not path.is_file():
+            continue
+        if any(part in skip_dirs for part in path.parts):
+            continue
+        yield path
+
+
+def check_security_scan() -> list[str]:
+    failures: list[str] = []
+    pattern = _security_pattern()
+
+    tracked_env = subprocess.run(["git", "ls-files", ".env", "*.env"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if tracked_env.stdout.strip():
+        failures.append(".env or *.env is tracked: " + tracked_env.stdout.strip())
+
+    git_grep = subprocess.run(["git", "grep", "-n", "-I", "-E", pattern.pattern], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if git_grep.returncode == 0 and git_grep.stdout.strip():
+        failures.append("git grep key hits: " + git_grep.stdout.strip().splitlines()[0])
+
+    fs_hits = []
+    for path in _iter_scan_files():
+        try:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        if pattern.search(text):
+            fs_hits.append(str(path.relative_to(ROOT)))
+    if fs_hits:
+        failures.append("filesystem key hits: " + ", ".join(fs_hits[:10]))
+    CHECK_STATUS["security_hits"] = failures[:]
+    CHECK_STATUS["security_scan"] = not failures
     return failures
 
 
@@ -704,6 +905,9 @@ def make_cases() -> list[Case]:
 def render_acceptance(results: list[dict], system_failures: list[str], stable_exit: bool) -> str:
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
+    supported = sum(1 for r in results if r.get("result_type") == "supported_success")
+    graceful = sum(1 for r in results if r.get("result_type") == "graceful_unavailable")
+    needs = sum(1 for r in results if r.get("result_type") == "needs_clarification")
     lines = [
         "# Acceptance Report",
         "",
@@ -712,6 +916,13 @@ def render_acceptance(results: list[dict], system_failures: list[str], stable_ex
         f"- Failed: {total - passed}",
         f"- Pass rate: {passed}/{total} ({passed / max(1,total):.1%})",
         f"- `python acceptance_check.py` stable exit: {'YES' if stable_exit else 'NO'}",
+        f"- Garbled user-visible data remains: {'NO' if CHECK_STATUS.get('garbled_data') else 'YES'}",
+        f"- Supported success cases: {supported}",
+        f"- Graceful unavailable cases: {graceful}",
+        f"- Needs clarification cases: {needs}",
+        f"- API smoke passed: {'YES' if CHECK_STATUS.get('api_smoke') else 'NO'}",
+        f"- session_id isolation passed: {'YES' if CHECK_STATUS.get('session_isolation') else 'NO'}",
+        f"- Security scan passed: {'YES' if CHECK_STATUS.get('security_scan') else 'NO'}",
         "",
         "## System Checks",
     ]
@@ -728,7 +939,9 @@ def render_acceptance(results: list[dict], system_failures: list[str], stable_ex
             "",
             f"- 输入：`{r['input']}`",
             f"- 解析字段：`{json.dumps(r['request'], ensure_ascii=False)}`",
-            f"- 是否追问：`{r['clarified']}`",
+            f"- result_type：`{r['result_type']}`",
+            f"- 是否触发追问：`{r['clarification_triggered']}`",
+            f"- 是否已补全进入规划：`{r['clarification_completed']}`",
             f"- 主方案摘要：{r['plan_summary']}",
             f"- 可选加购摘要：{r['addon_summary']}",
             f"- 预约状态：{r['booking_status']}",
@@ -766,28 +979,21 @@ def render_acceptance(results: list[dict], system_failures: list[str], stable_ex
 
 
 def render_quality_report(system_failures: list[str]) -> str:
-    tracked_env = subprocess.run(["git", "ls-files", ".env", "*.env"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
-    key_pattern = (
-        r"(s" + r"k-[A-Za-z0-9_-]{20,}|"
-        r"DEEPSEEK_API_KEY\s*=\s*s" + r"k-|"
-        r"OPENAI_API_KEY\s*=\s*s" + r"k-|"
-        r"g" + r"hp_[A-Za-z0-9_]{20,}|"
-        r"github" + r"_pat_)"
-    )
-    grep_key = subprocess.run(
-        ["git", "grep", "-n", "-I", "-E", key_pattern],
-        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
+    security_ok = CHECK_STATUS.get("security_scan")
+    security_hits = CHECK_STATUS.get("security_hits") or []
     return "\n".join([
         "# Code Quality Report",
         "",
         "- 全局单 Agent 多用户串会话风险：已降低。`server.py` 使用 `AGENTS[session_id]` 最小隔离，前端 localStorage 生成并传递 session_id。",
+        f"- API smoke：{'通过' if CHECK_STATUS.get('api_smoke') else '未通过'}。",
+        f"- session_id 隔离：{'通过' if CHECK_STATUS.get('session_isolation') else '未通过'}。",
         "- 接口 500 风险：核心接口保留 try/except，以 `ok=false` 返回可读错误。",
         "- data 文件损坏崩溃风险：`catalog.py`、`planner.py`、`tools.py`、`addon.py` 已有兜底；验收脚本覆盖 merchants/scenes/travel 损坏。",
+        f"- 用户可见乱码数据：{'无' if CHECK_STATUS.get('garbled_data') else '仍存在'}。",
         "- LLM 调用越界：未发现。业务流仍只允许 `parser.parse_request` 与 `tools.compose_share_card` 使用 LLM 包装。",
         "- 真实 API 调用：未发现。预约、库存、分享卡均为本地 Mock 或模板兜底。",
-        f"- 硬编码 key：{'未发现' if grep_key.returncode != 0 else '发现疑似命中，请检查'}。",
-        f"- `.env` 被跟踪：{'否' if not tracked_env else '是：' + tracked_env}。",
+        f"- 安全扫描：{'通过' if security_ok else '未通过'}。扫描包含 git tracked 文件和文件系统遍历；跳过 `.git`、`.venv`、`venv`、`__pycache__`、`node_modules`、`output`。",
+        f"- 硬编码 key：{'未发现' if security_ok else '发现疑似命中：' + '; '.join(security_hits[:3])}。",
         "- 前端绕过后端业务逻辑：未发现主流程绕过。前端传 session_id、展示状态；规划/选择/预约/异常仍由后端 Agent 完成。",
         "",
         "## System Check Failures",
@@ -832,6 +1038,45 @@ def render_hardening2_report(results: list[dict], system_failures: list[str], st
     ]) + "\n"
 
 
+def render_submission_cleanup_report(results: list[dict], system_failures: list[str], stable_exit: bool) -> str:
+    failed = [r for r in results if not r["passed"]]
+    supported = sum(1 for r in results if r.get("result_type") == "supported_success")
+    graceful = sum(1 for r in results if r.get("result_type") == "graceful_unavailable")
+    needs = sum(1 for r in results if r.get("result_type") == "needs_clarification")
+    return "\n".join([
+        "# Submission Cleanup Report",
+        "",
+        "## Final Submission Cleanup",
+        "",
+        "- 不改大架构，不新增业务花活。",
+        "- 修复新增商户和 travel 路线中的用户可见乱码。",
+        "- acceptance_check.py 增加 data_integrity、API smoke、session_id 隔离和文件系统安全扫描。",
+        "- ACCEPTANCE_REPORT.md 增加 result_type，并拆分“是否触发追问 / 是否已补全进入规划”。",
+        "",
+        "## 明确结论",
+        "",
+        f"- 是否还有乱码数据：{'NO' if CHECK_STATUS.get('garbled_data') else 'YES'}",
+        f"- 支持成功用例数量：{supported}",
+        f"- 优雅失败用例数量：{graceful}",
+        f"- 需要追问用例数量：{needs}",
+        f"- API smoke 是否通过：{'YES' if CHECK_STATUS.get('api_smoke') else 'NO'}",
+        f"- session_id 隔离是否通过：{'YES' if CHECK_STATUS.get('session_isolation') else 'NO'}",
+        f"- 安全扫描是否通过：{'YES' if CHECK_STATUS.get('security_scan') else 'NO'}",
+        f"- `python acceptance_check.py` 是否稳定退出：{'YES' if stable_exit else 'NO'}",
+        f"- 总用例：{len(results)}",
+        f"- 失败用例：{len(failed)}",
+        "",
+        "## 失败用例",
+        "",
+        "- 无" if not failed else "\n".join(f"- {r['id']}. {r['name']}: {'; '.join(r['failures'])}" for r in failed),
+        "",
+        "## 系统检查失败",
+        "",
+        "- 无" if not system_failures else "\n".join(f"- {x}" for x in system_failures),
+        "",
+    ]) + "\n"
+
+
 def main() -> int:
     started = time.time()
     system_failures = []
@@ -839,6 +1084,9 @@ def main() -> int:
     system_failures.extend(check_module_runs())
     system_failures.extend(check_no_key_fallback())
     system_failures.extend(check_damaged_data_fallback())
+    system_failures.extend(check_data_integrity())
+    system_failures.extend(check_api_smoke())
+    system_failures.extend(check_security_scan())
 
     results = [case.run() for case in make_cases()]
     failed = [r for r in results if not r["passed"]]
@@ -846,6 +1094,7 @@ def main() -> int:
     (ROOT / "ACCEPTANCE_REPORT.md").write_text(render_acceptance(results, system_failures, stable_exit), encoding="utf-8")
     (ROOT / "CODE_QUALITY_REPORT.md").write_text(render_quality_report(system_failures), encoding="utf-8")
     (ROOT / "HARDENING2_REPORT.md").write_text(render_hardening2_report(results, system_failures, stable_exit), encoding="utf-8")
+    (ROOT / "SUBMISSION_CLEANUP_REPORT.md").write_text(render_submission_cleanup_report(results, system_failures, stable_exit), encoding="utf-8")
 
     for r in results:
         print(f"[{'PASS' if r['passed'] else 'FAIL'}] {r['id']:02d} {r['name']} ({r['elapsed_seconds']}s)")

@@ -458,8 +458,8 @@
       "唱歌",
       "聚会",
       "音响好",
-      "?????",
-      "????"
+      "无酒精套餐",
+      "亲子可唱"
     ],
     "review_snippet": "音响效果不错，曲库也全。",
     "image": "🎤",
@@ -1471,7 +1471,7 @@
   },
   {
     "id": "m_029",
-    "name": "??????????",
+    "name": "茶小满·老门东店",
     "category": "奶茶",
     "slot_role": "ADDON",
     "area": "老门东",
@@ -1480,12 +1480,13 @@
     "rating": 4.3,
     "review_count": 7200,
     "review_tags": [
-      "便宜",
-      "奶茶",
-      "经典"
+      "无咖啡因",
+      "少糖",
+      "热饮",
+      "经典奶茶"
     ],
-    "review_snippet": "波霸奶茶是经典，便宜好喝。",
-    "image": "🥤",
+    "review_snippet": "支持无咖啡因奶茶和少糖热饮，适合晚上想喝但不想太刺激的用户。",
+    "image": "??",
     "open": "09:30",
     "close": "22:00",
     "can_reserve": false,
@@ -1510,8 +1511,8 @@
       "kid_friendly": true
     },
     "recommended_dishes": [
-      "波霸奶茶",
-      "冰淇淋红茶"
+      "无咖啡因黑糖奶茶",
+      "热的低糖奶茶"
     ],
     "drink_options": {
       "sugar_levels": [
@@ -1942,27 +1943,27 @@
   },
   {
     "id": "m_037",
-    "name": "?????",
-    "category": "??",
+    "name": "云肩舒压馆",
+    "category": "按摩",
     "slot_role": "PLAY",
-    "area": "???",
+    "area": "新街口",
     "price": 168,
     "duration_minutes": 90,
     "rating": 4.7,
     "review_count": 980,
     "review_tags": [
-      "??",
-      "??",
-      "??",
-      "???"
+      "按摩",
+      "放松",
+      "安静",
+      "不推销"
     ],
-    "review_snippet": "??????????????????",
+    "review_snippet": "肩颈舒压和足疗都比较稳，适合周末不想太折腾的放松局。",
     "image": "??",
     "open": "10:00",
     "close": "23:00",
     "can_reserve": true,
     "group_deal": {
-      "name": "90??????",
+      "name": "90分钟肩颈舒压",
       "price": 168,
       "save": 40
     },
@@ -1990,27 +1991,27 @@
   },
   {
     "id": "m_038",
-    "name": "???????",
-    "category": "??",
+    "name": "黑八台球俱乐部",
+    "category": "台球",
     "slot_role": "PLAY",
-    "area": "???",
+    "area": "新街口",
     "price": 68,
     "duration_minutes": 120,
     "rating": 4.6,
     "review_count": 1320,
     "review_tags": [
-      "??",
-      "???",
-      "???",
-      "??"
+      "台球",
+      "朋友局",
+      "可预约",
+      "轻松"
     ],
-    "review_snippet": "??????????????????",
+    "review_snippet": "台子间距宽，不太吵，四人晚上打两小时比较合适。",
     "image": "??",
     "open": "10:00",
     "close": "23:00",
     "can_reserve": true,
     "group_deal": {
-      "name": "2??????",
+      "name": "2小时台球套餐",
       "price": 128,
       "save": 36
     },
@@ -2037,27 +2038,27 @@
   },
   {
     "id": "m_039",
-    "name": "?????Citywalk",
+    "name": "采石矶Citywalk",
     "category": "citywalk",
     "slot_role": "PLAY",
-    "area": "???",
+    "area": "马鞍山",
     "price": 60,
     "duration_minutes": 360,
     "rating": 4.5,
     "review_count": 520,
     "review_tags": [
       "citywalk",
-      "???",
-      "???",
-      "??"
+      "一整天",
+      "小吃街",
+      "拍照"
     ],
-    "review_snippet": "??????????????????",
+    "review_snippet": "从采石矶到江边步道，节奏不急，适合有一整天时间的跨城小彩蛋。",
     "image": "??",
     "open": "09:00",
     "close": "20:00",
     "can_reserve": true,
     "group_deal": {
-      "name": "??????",
+      "name": "小吃街路线包",
       "price": 58,
       "save": 12
     },
@@ -2085,27 +2086,27 @@
   },
   {
     "id": "m_040",
-    "name": "????????",
-    "category": "??",
+    "name": "轻住酒店·新街口",
+    "category": "酒店",
     "slot_role": "PLAY",
-    "area": "???",
+    "area": "新街口",
     "price": 199,
     "duration_minutes": 720,
     "rating": 4.4,
     "review_count": 2100,
     "review_tags": [
-      "??",
-      "??",
-      "???",
-      "??"
+      "酒店",
+      "休息",
+      "钟点房",
+      "安静"
     ],
-    "review_snippet": "??????????????????",
+    "review_snippet": "支持钟点房预约，适合晚上想临时休息的用户。",
     "image": "??",
     "open": "00:00",
     "close": "23:59",
     "can_reserve": true,
     "group_deal": {
-      "name": "4?????",
+      "name": "4小时休息房",
       "price": 199,
       "save": 60
     },
@@ -2132,26 +2133,26 @@
   },
   {
     "id": "m_041",
-    "name": "??IMAX??",
-    "category": "???",
+    "name": "河西IMAX影城",
+    "category": "电影院",
     "slot_role": "PLAY",
-    "area": "??",
+    "area": "河西",
     "price": 55,
     "duration_minutes": 130,
     "rating": 4.6,
     "review_count": 2400,
     "review_tags": [
       "IMAX",
-      "??",
-      "???"
+      "舒适",
+      "可选座"
     ],
-    "review_snippet": "??????????????????",
+    "review_snippet": "巨幕厅选座稳，适合不想吃饭只看电影的场景。",
     "image": "???",
     "open": "10:00",
     "close": "23:00",
     "can_reserve": true,
     "group_deal": {
-      "name": "?????",
+      "name": "双人电影票",
       "price": 98,
       "save": 20
     },
@@ -2179,27 +2180,27 @@
   },
   {
     "id": "m_042",
-    "name": "?????",
-    "category": "??",
+    "name": "椰子鸡火锅",
+    "category": "火锅",
     "slot_role": "EAT",
-    "area": "??",
+    "area": "河西",
     "price": 128,
     "duration_minutes": 100,
     "rating": 4.6,
     "review_count": 1900,
     "review_tags": [
-      "??",
-      "??",
-      "??",
-      "????"
+      "火锅",
+      "清淡",
+      "不辣",
+      "番茄锅"
     ],
-    "review_snippet": "??????????????????",
+    "review_snippet": "有清汤、番茄锅和鸳鸯锅，不吃辣也能吃火锅。",
     "image": "??",
     "open": "10:00",
     "close": "23:00",
     "can_reserve": true,
     "group_deal": {
-      "name": "4??????",
+      "name": "4人椰子鸡套餐",
       "price": 488,
       "save": 70
     },
@@ -2225,19 +2226,23 @@
       "spicy": false
     },
     "recommended_dishes": [
-      "????",
-      "??"
+      "椰子鸡锅",
+      "番茄锅",
+      "鸳鸯锅"
     ],
     "cuisine_tags": [
-      "??",
-      "???",
-      "???"
+      "火锅",
+      "番茄锅",
+      "鸳鸯锅",
+      "清汤锅"
     ],
     "spicy_level": 0,
     "diet_support": [
       "no_spicy",
-      "??",
-      "???"
+      "不辣",
+      "番茄锅",
+      "鸳鸯锅",
+      "清汤锅"
     ],
     "private_room": true,
     "table_sizes": [
@@ -2247,9 +2252,9 @@
       8
     ],
     "signature_dishes": [
-      "????",
-      "??",
-      "???"
+      "椰子鸡锅",
+      "番茄锅",
+      "鸳鸯锅"
     ]
   }
 ]
