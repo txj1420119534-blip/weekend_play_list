@@ -12,8 +12,8 @@
 ## 验收结果
 
 - `python acceptance_check.py` stable exit: YES
-- total cases: 40
-- passed: 40
+- total cases: 64
+- passed: 64
 - failed: 0
 - system failures: 无
 

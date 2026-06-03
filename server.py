@@ -76,6 +76,10 @@ def _safe_session(s: dict) -> dict:
         "mode": s.get("mode", "ready"),
         "clarifications_needed": s.get("clarifications_needed", []),
         "explicit_categories": s.get("explicit_categories", []),
+        "intent_frame": s.get("intent_frame"),
+        "constraints": s.get("constraints", {}),
+        "group_decision": s.get("group_decision", {}),
+        "price_optimization": s.get("price_optimization", {}),
         "vote_room": vote_room,
     }
 

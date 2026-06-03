@@ -15,6 +15,9 @@ from agent.parser import parse_request
 from agent.planner import build_itinerary, replan, score_plan
 from agent.tools import check_availability, book_item, compose_share_card
 from agent.addon import suggest_addon
+from agent.constraint_engine import build_constraints
+from agent.group_decision import build_group_decision
+from agent.price_optimizer import optimize_price
 
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
@@ -122,6 +125,10 @@ class Agent:
             "mode": "ready",                    # ready / needs_clarification / planned / executed
             "clarifications_needed": [],
             "explicit_categories": [],
+            "intent_frame": None,
+            "constraints": {},
+            "group_decision": {},
+            "price_optimization": {},
         }
 
     # ─────────────────────────────────────────────────────────────────
@@ -158,15 +165,21 @@ class Agent:
 
         # 1) 解析
         request = parse_request(text, self.logbook)
-        request = _normalize_request_types(request)
         request["_rejected_ids"] = set(self.session["rejected_ids"])
         self.session["request"] = request
         self.session["explicit_categories"] = request.get("explicit_categories", [])
         self.session["clarifications_needed"] = request.get("clarifications_needed", [])
+        self.session["intent_frame"] = request.get("intent_frame")
+        self.session["constraints"] = build_constraints(request, request.get("intent_frame"))
+        self.session["group_decision"] = build_group_decision(text, request.get("intent_frame"))
 
         # 2) 信息严重缺失 → 进入追问模式，不出方案
-        if self.session["clarifications_needed"]:
+        if request.get("next_action") != "build_plan" or self.session["clarifications_needed"]:
             self.session["mode"] = "needs_clarification"
+            if request.get("next_action") == "rest_support":
+                self.session["mode"] = "rest_support"
+            elif request.get("next_action") == "show_category_choices":
+                self.session["mode"] = "category_choices"
             self.logbook.add("请用户补充", "warning",
                              "信息不全，已暂停规划，等待用户补充关键信息后再继续")
             self.session["logs"] = self.logbook.to_list()
@@ -223,14 +236,36 @@ class Agent:
                 request["confidence"] = 0.86
                 applied.append(f"{k}={v}")
                 continue
+            if k == "activity_choice":
+                mapping = {
+                    "剧本杀": ("script_game", "PLAY", "剧本杀"),
+                    "KTV": ("outing", "PLAY", "KTV"),
+                    "台球": ("outing", "PLAY", "台球"),
+                    "密室": ("outing", "PLAY", "密室"),
+                    "电影": ("movie", "PLAY", "电影院"),
+                    "电影院": ("movie", "PLAY", "电影院"),
+                    "桌游": ("outing", "PLAY", "桌游"),
+                }
+                if v in mapping:
+                    primary, role, cat = mapping[v]
+                    request["primary_intent"] = primary
+                    request["main_role"] = role
+                    request["requested_categories"] = [cat]
+                    request["explicit_categories"] = [{"role": role, "category": cat, "keyword": str(v)}]
+                    request["scene"] = "play_only"
+                applied.append(f"{k}={v}")
+                continue
             request[k] = v
             applied.append(f"{k}={v}")
+        request["next_action"] = "build_plan"
         request = _normalize_request_types(request)
+        request["constraints"] = build_constraints(request, request.get("intent_frame"))
         # 清空"待追问"
         request["clarifications_needed"] = []
         self.session["clarifications_needed"] = []
         request["_rejected_ids"] = set(self.session["rejected_ids"])
         self.session["request"] = request
+        self.session["constraints"] = request["constraints"]
 
         self.logbook.add("补充信息", "success",
                          f"已收到补充：{'、'.join(applied) if applied else '无'}")
@@ -239,10 +274,15 @@ class Agent:
 
     def _build_and_check(self, request: dict) -> dict:
         """共用：排方案 + 查余位 + 更新画像评分。"""
+        request = _normalize_request_types(request)
+        self.session["request"] = request
+        self.session["constraints"] = build_constraints(request, request.get("intent_frame"))
         plans = build_itinerary(request, self.logbook)
         for p in plans:
             p["score"] = score_plan(p, request, profile=self.session.get("profile"))
+            p["price_optimization"] = optimize_price(p, request)
         self.session["plans"] = plans
+        self.session["price_optimization"] = plans[0].get("price_optimization") if plans else {}
 
         # 查余位（每个方案的每个商户节点）
         for p in plans:

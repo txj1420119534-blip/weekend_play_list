@@ -24,6 +24,7 @@ from agent.category_schema import (
     parse_party_size,
 )
 from agent.clarify import decide_clarifications
+from agent.intent_frame import build_intent_frame, clarification_questions
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
@@ -497,9 +498,34 @@ def parse_request(text: str, logbook=None) -> dict:
             result["scene"] = "play_only"
 
     _sanitize_preferences_by_scene(text, result, explicit_cats)
-    result["clarifications_needed"] = _detect_clarifications(text, result, explicit_cats)
+    frame = build_intent_frame(text, result)
+    result["intent_frame"] = frame
+    result["intent_status"] = frame["intent_status"]
+    result["next_action"] = frame["next_action"]
+    result["confidence"] = min(result.get("confidence", 0.0) or 0.0, frame.get("confidence", 0.0) or 0.0) if frame["intent_status"] in ("broad", "ambiguous", "rest_first") else result.get("confidence", frame.get("confidence", 0.0))
+    result["primary_intent"] = frame["primary_intent"] if frame["primary_intent"] != "unknown" else result.get("primary_intent")
+    result["main_role"] = frame["main_role"] if frame["main_role"] != "UNKNOWN" else result.get("main_role")
+    result["sequence"] = frame["sequence"]
+    result["negative_intents"] = _merge_unique(list(result.get("negative_intents") or []) + list(frame.get("negative_intents") or []))
+    result["safety_flags"] = _merge_unique(list(result.get("safety_flags") or []) + list(frame.get("safety_flags") or []))
+
+    # 用户没说过的字段不能显示成已确认。保留旧字段给 planner 的内部试排，
+    # 但 broad/rest/ambiguous 阶段会在 core 被拦截，不会直接进入 build_itinerary。
+    for key, source in (frame.get("field_sources") or {}).items():
+        if source == "unknown":
+            if key == "transport":
+                result[key] = "unknown"
+            else:
+                result[key] = None
+        else:
+            result[key] = frame["confirmed_fields"].get(key)
+
+    if frame["next_action"] != "build_plan":
+        result["clarifications_needed"] = clarification_questions(frame)
+    else:
+        result["clarifications_needed"] = _detect_clarifications(text, result, explicit_cats)
     result["missing_fields"] = [c.get("key") for c in result["clarifications_needed"] if c.get("key")]
-    result["goal_summary"] = _make_goal_summary(result)
+    result["goal_summary"] = frame.get("goal_summary") or _make_goal_summary(result)
 
     # 日志
     if logbook:

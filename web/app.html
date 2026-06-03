@@ -930,36 +930,51 @@ function streamLogs(logs, startIdx, done){
 
 /* ===== 解析卡 ===== */
 function renderParse(req, explicit_categories){
+  const frame = req.intent_frame || STATE.session?.intent_frame || {};
+  const confirmed = frame.confirmed_fields || {};
+  const sources = frame.field_sources || {};
+  const truth = (key, label, formatter) => {
+    const val = confirmed[key];
+    if(sources[key] !== "explicit_text" || val === null || val === undefined || val === "" || val === "unknown") return "";
+    return `<div class="parse-row"><div class="parse-k">${label}</div><div class="parse-v">${formatter ? formatter(val) : val}</div></div>`;
+  };
   const want = (req.preferences||[]).map(p=>`<span class="t">${PREF_NAME[p]||p}</span>`).join("");
   const avoid = (req.hard_limits||[]).map(a=>`<span class="t avoid">${HL_NAME[a]||a}</span>`).join("");
-  const catChips = (explicit_categories||[]).length
-    ? (explicit_categories||[]).map(c=>`<span class="t" style="background:#FFE680;color:#5A4200">${c.category}</span>`).join("")
+  const seq = frame.sequence || [];
+  const catChips = seq.length
+    ? seq.map(c=>`<span class="t" style="background:#FFE680;color:#5A4200">${c.category || (c.role==="EAT" ? "吃饭" : c.role)}</span>`).join("")
+    : (explicit_categories||[]).length
+      ? (explicit_categories||[]).map(c=>`<span class="t" style="background:#FFE680;color:#5A4200">${c.category}</span>`).join("")
     : "";
   const safety = (req.safety_flags||[]).length
     ? (req.safety_flags||[]).map(x=>`<span class="t avoid">${{
       no_spicy:"不吃辣", no_alcohol:"不喝酒", cannot_ice:"不能冰", not_too_sweet:"不要太甜", body_uncomfortable:"身体不适", kid_safe:"适合孩子"
     }[x]||x}</span>`).join("")
     : "";
-  const missing = (req.missing_fields||[]).length
-    ? (req.missing_fields||[]).map(x=>`<span class="t avoid">${{
-      party_size:"人数", start_time:"时间", budget_per_person:"预算", script_style:"剧本类型", window_hours:"可用时长", home_area:"出发区域", distance_tolerance:"距离偏好"
+  const unknownFields = frame.unknown_fields || req.missing_fields || [];
+  const missing = unknownFields.length
+    ? unknownFields.map(x=>`<span class="t avoid">${{
+      party_size:"人数", start_time:"时间", duration_minutes:"可用时长", budget_per_person:"预算", transport:"出行方式", script_style:"剧本类型", window_hours:"可用时长", home_area:"出发区域", distance_tolerance:"距离偏好", activity_choice:"活动方向"
     }[x]||x}</span>`).join("")
     : `<span class="t">信息已够生成方案</span>`;
   const rows = [
-    `<div class="parse-row full"><div class="parse-k">目标</div><div class="parse-v">${req.goal_summary || "帮你把这次安排落地"}</div></div>`,
-    `<div class="parse-row"><div class="parse-k">人数</div><div class="parse-v">${req.party_size} 人</div></div>`,
-    `<div class="parse-row"><div class="parse-k">时间</div><div class="parse-v">${req.start_time} · ${req.window_hours} 小时</div></div>`,
-    `<div class="parse-row"><div class="parse-k">预算</div><div class="parse-v" style="color:var(--price)">¥${req.budget_per_person}/人</div></div>`,
+    `<div class="parse-row full"><div class="parse-k">目标</div><div class="parse-v">${frame.goal_summary || req.goal_summary || "还需要确认目标"}</div></div>`,
   ];
+  [truth("party_size","人数",v=>`${v} 人`),
+   truth("start_time","时间",v=>v),
+   truth("duration_minutes","时长",v=>`${Math.round(Number(v)/60*10)/10} 小时`),
+   truth("budget_per_person","预算",v=>`¥${v}/人`),
+   truth("home_area","区域",v=>v),
+   truth("transport","交通",v=>({public:"公共交通",self_drive:"自驾"}[v]||v))].filter(Boolean).forEach(x=>rows.push(x));
   if(catChips) rows.push(`<div class="parse-row full"><div class="parse-k">你提到</div><div class="tags">${catChips}</div></div>`);
   if(want) rows.push(`<div class="parse-row full"><div class="parse-k">偏好</div><div class="tags">${want}</div></div>`);
   if(avoid || safety) rows.push(`<div class="parse-row full"><div class="parse-k">避开项</div><div class="tags">${avoid}${safety}</div></div>`);
   rows.push(`<div class="parse-row full"><div class="parse-k">还差这些信息</div><div class="tags">${missing}</div></div>`);
   document.getElementById("parseGrid").innerHTML = rows.join("");
   updateSideStatus("已理解目标，下一步确认缺失信息或选择方案。", [
-    {title:"当前目标", body:req.goal_summary || "周末安排"},
-    {title:"已确认条件", body:`${catChips ? (explicit_categories||[]).map(c=>c.category).join("、") : "未点名品类"} · ¥${req.budget_per_person}/人`},
-    {title:"下一步", body:(req.missing_fields||[]).length ? "先补齐关键信息" : "选择一个候选方案"}
+    {title:"当前目标", body:frame.goal_summary || req.goal_summary || "待确认"},
+    {title:"已确认条件", body:catChips || "暂无明确品类"},
+    {title:"下一步", body:(unknownFields||[]).length ? "先补齐关键信息" : "选择一个候选方案"}
   ]);
 }
 
@@ -1165,6 +1180,10 @@ function commercialHTML(plan){
 
 function planCardHTML(plan, idx){
   const tag = idx === 0 ? "推荐 A" : "对照 B";
+  const pay = plan.price_optimization;
+  const payHTML = pay ? `<div class="commercial-item"><b>怎么付更划算：</b>${{
+      separate:"建议分开买", bundle:"建议一键买单", member:"建议用会员价", pay_at_store:"到店支付"
+    }[pay.recommended_payment] || "按最优价"} <span>省 ¥${pay.saving_amount || 0}</span><br>${(pay.warnings||[]).join(" ")}</div>` : "";
   if(plan.unavailable){
     const opts = (plan.relaxation_options||[]).map(x=>`<span class="risk">${x}</span>`).join("");
     return `<div class="plan" id="plan-${idx}">
@@ -1195,6 +1214,7 @@ function planCardHTML(plan, idx){
     </div>
     <div class="timeline">${timelineHTML(plan)}</div>
     <div class="plan-reason"><b>推荐理由：</b>${plan.reason}</div>
+    ${payHTML}
     ${(plan.risks||[]).length ? `<div class="plan-risks">${plan.risks.map(r=>`<span class="risk">⚠ ${r}</span>`).join("")}</div>` : ""}
     <div class="plan-foot">
       <div class="plan-cost-num">人均 <b>¥${plan.total_cost_per_person}</b><span>· ${(plan.total_minutes/60).toFixed(1)}h</span></div>
@@ -1497,7 +1517,7 @@ async function startPlanning(){
     show("parseCard");
 
     // 判断是否进入追问中转
-    if(sess.mode === "needs_clarification" && (sess.clarifications_needed||[]).length){
+    if(["needs_clarification","category_choices","rest_support"].includes(sess.mode) && (sess.clarifications_needed||[]).length){
       renderClarify(sess.clarifications_needed, sess.explicit_categories, text);
       setTimeout(()=>{
         show("clarifyCard");

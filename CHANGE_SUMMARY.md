@@ -1,5 +1,46 @@
 # Change Summary
 
+## Core Workflow Rebuild Phase 1
+
+### 修改文件列表
+
+- `agent/intent_frame.py`
+- `agent/constraint_engine.py`
+- `agent/group_decision.py`
+- `agent/price_optimizer.py`
+- `agent/parser.py`
+- `agent/core.py`
+- `server.py`
+- `web/app.html`
+- `acceptance_check.py`
+- `ACCEPTANCE_REPORT.md`
+- `CORE_WORKFLOW_REBUILD_REPORT.md`
+- `CHANGE_SUMMARY.md`
+
+### 每个文件改了什么
+
+- `agent/intent_frame.py`：新增“用户意图真值层”，区分 confirmed_fields、field_sources、unknown_fields、assumptions、next_action；用户没说的预算、时间、人数、交通、区域不再作为已确认信息。
+- `agent/constraint_engine.py`：新增硬约束/安全约束骨架，统一 no_spicy、no_alcohol、cannot_ice、kid_safe、caffeine_free 等约束。
+- `agent/group_decision.py`：新增多人决策骨架，broad 出游场景先给活动方向 choice_cards，而不是替用户直接选店。
+- `agent/price_optimizer.py`：新增 Mock 价格优化骨架，对比分开买、一键买单、会员价、到店支付，并提示“分开买更便宜”。
+- `agent/parser.py`：接入 intent_frame；goal_summary 改为来自显式意图和 confirmed_fields；broad/rest/ambiguous 场景不再把默认值写成用户已确认。
+- `agent/core.py`：新增 planner guard；`next_action != build_plan` 时不调用 build_itinerary；补充约束、多人决策、价格优化结果到 session/plan。
+- `server.py`：向前端返回 intent_frame、constraints、group_decision、price_optimization。
+- `web/app.html`：解析卡只展示用户明确说过的信息；unknown_fields 放入“还差这些信息”；category_choices/rest_support 走追问/选择卡；方案卡显示 Mock 价格优化。
+- `acceptance_check.py`：保留原 40 个用例，并新增 24 个 Intent Truth / Constraint / Group / Price / Regression 用例。
+- `ACCEPTANCE_REPORT.md`、`CORE_WORKFLOW_REBUILD_REPORT.md`：由验收脚本生成最新结论。
+
+### 验收结果
+
+- `python -m compileall agent server.py cli.py acceptance_check.py`：PASS
+- `python acceptance_check.py`：64/64 PASS
+- 默认值是否还会进入 goal_summary：NO
+- broad intent 是否还会直接推荐商户：NO
+- rest intent 是否还会推荐出门玩：NO
+- 硬约束是否能压过广告/评分/优惠：YES
+- 多人场景是否能先给选择/投票：YES
+- 价格优化是否能发现“分开买更便宜”：YES
+
 ## Final Tiny Fix
 
 ### 修改文件列表

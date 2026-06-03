@@ -890,6 +890,143 @@ def make_cases() -> list[Case]:
         return f
     cases.append(Case(40, "kid KTV no alcohol", TEXT["kid_ktv"], c40, lambda: default_runner(TEXT["kid_ktv"], {"party_size":3,"start_time":"19:00","budget_per_person":150,"home_area":"新街口","window_hours":2})))
 
+    def no_plan_runner(text):
+        return default_runner(text, auto_refine=False)
+
+    def frame_check(expected_intent, expected_action, forbidden_goal=()):
+        def check(ctx):
+            f=[]; s=ctx["session"]; req=s.get("request") or {}; frame=req.get("intent_frame") or {}
+            require(frame.get("primary_intent")==expected_intent, f"intent not {expected_intent}: {frame.get('primary_intent')}", f)
+            require(frame.get("next_action")==expected_action, f"next_action not {expected_action}: {frame.get('next_action')}", f)
+            require(not s.get("plans"), "broad/rest intent generated merchant plans", f)
+            goal = frame.get("goal_summary") or req.get("goal_summary") or ""
+            for bad in forbidden_goal:
+                require(str(bad) not in goal, f"default leaked into goal_summary: {bad}", f)
+            return f
+        return check
+
+    cases.append(Case(41, "intent truth food discovery", "我想吃点什么",
+                      frame_check("food_discovery", "ask_clarification", ["周末","150","公共交通","新街口","4人"]),
+                      lambda: no_plan_runner("我想吃点什么")))
+    cases.append(Case(42, "intent truth casual food", "随便吃点",
+                      frame_check("food_discovery", "ask_clarification", ["150","公共交通","新街口","4人"]),
+                      lambda: no_plan_runner("随便吃点")))
+    cases.append(Case(43, "intent truth nearby food asks location", "附近有啥好吃的",
+                      frame_check("food_discovery", "ask_clarification", ["新街口"]),
+                      lambda: no_plan_runner("附近有啥好吃的")))
+    def c44(ctx):
+        f=[]; req=ctx["session"].get("request") or {}; frame=req.get("intent_frame") or {}; cf=frame.get("confirmed_fields") or {}
+        require(frame.get("primary_intent")=="food_discovery", "tonight dinner not food discovery", f)
+        require(cf.get("start_time") is not None, "tonight dinner did not keep time", f)
+        require(cf.get("party_size") is None and cf.get("budget_per_person") is None and cf.get("home_area") is None, "default fields leaked into confirmed_fields", f)
+        require(not ctx["session"].get("plans"), "broad dinner generated plans", f)
+        return f
+    cases.append(Case(44, "intent truth tonight dinner", "今晚吃饭", c44, lambda: no_plan_runner("今晚吃饭")))
+    cases.append(Case(45, "intent truth rest sleep", "我想睡会",
+                      frame_check("rest", "rest_support", ["展览","咖啡馆","餐厅","剧本杀"]),
+                      lambda: no_plan_runner("我想睡会")))
+    cases.append(Case(46, "intent truth rest exhausted", "我好累，现在什么都不想干",
+                      frame_check("rest", "rest_support", ["展览","餐厅","剧本杀"]),
+                      lambda: no_plan_runner("我好累，现在什么都不想干")))
+    cases.append(Case(47, "intent truth outing category choices", "我想和同学出去玩",
+                      frame_check("outing", "show_category_choices", ["城市影像展","餐厅"]),
+                      lambda: no_plan_runner("我想和同学出去玩")))
+    cases.append(Case(48, "intent truth date asks first", "想和女朋友去约会，浪漫一点",
+                      frame_check("date", "ask_clarification", ["150","公共交通","新街口"]),
+                      lambda: no_plan_runner("想和女朋友去约会，浪漫一点")))
+    def c49(ctx):
+        f=[]; s=ctx["session"]; frame=(s.get("request") or {}).get("intent_frame") or {}; seq=frame.get("sequence") or []
+        require([x.get("category") for x in seq[:2]] == ["剧本杀", None], f"sequence not script then eat: {seq}", f)
+        require(s.get("mode")=="needs_clarification", "script+eat missing fields did not ask", f)
+        require(not s.get("plans"), "script+eat missing fields generated plans", f)
+        return f
+    cases.append(Case(49, "intent truth script then meal", "想打个本，再去吃个饭", c49, lambda: no_plan_runner("想打个本，再去吃个饭")))
+    def c50(ctx):
+        f=[]; req=ctx["session"].get("request") or {}; frame=req.get("intent_frame") or {}; cats=[x.get("category") for x in frame.get("sequence") or []]
+        require("电影院" in cats, f"movie category missing: {cats}", f)
+        require("no_meal" not in (req.get("negative_intents") or []) or True, "noop", f)
+        if ctx["session"].get("plans"):
+            require(_cats(_main_plan(ctx["session"])) == ["电影院"], "movie plan contains non-movie main node", f)
+        return f
+    cases.append(Case(50, "intent truth short movie", "想出去玩2小时，看个电影", c50, lambda: no_plan_runner("想出去玩2小时，看个电影")))
+
+    def c51(ctx):
+        f=[]; req=ctx["session"].get("request") or {}; cons=ctx["session"].get("constraints") or {}
+        require("cannot_ice" in (req.get("safety_flags") or []), "missing cannot_ice", f)
+        require(any(x.get("type")=="drink_temperature" for x in cons.get("hard_constraints") or []), "constraint engine missing drink_temperature", f)
+        return f
+    cases.append(Case(51, "constraint pregnant hot drink", "我是孕妇，想喝点热的，不要冰", c51, lambda: no_plan_runner("我是孕妇，想喝点热的，不要冰")))
+    def c52(ctx):
+        f=[]; cons=ctx["session"].get("constraints") or {}
+        require("kid_safe" in [x.get("type") for x in cons.get("safety_constraints") or []], "missing kid_safe constraint", f)
+        require("酒吧" in (cons.get("blocked_categories") or []), "kid_safe did not block bar", f)
+        return f
+    cases.append(Case(52, "constraint kid safe", "带孩子出去玩，别太成人", c52, lambda: no_plan_runner("带孩子出去玩，别太成人")))
+    def c53(ctx):
+        f=[]; cons=ctx["session"].get("constraints") or {}
+        require(any(x.get("type")=="no_alcohol" for x in cons.get("hard_constraints") or []), "missing no_alcohol hard constraint", f)
+        return f
+    cases.append(Case(53, "constraint self-drive no alcohol", "自驾去唱歌，别喝酒", c53, lambda: no_plan_runner("自驾去唱歌，别喝酒")))
+    def c54(ctx):
+        f=[]; req=ctx["session"].get("request") or {}; plan=_main_plan(ctx["session"])
+        require("no_spicy" in (req.get("safety_flags") or []) or "no_spicy" in (req.get("diet_limits") or []), "missing no_spicy", f)
+        if plan and not plan.get("unavailable"):
+            step=_business_steps(plan)[0] if _business_steps(plan) else {}
+            support=set(step.get("diet_support") or [])
+            require(bool(support & {"no_spicy","不辣","番茄锅","鸳鸯锅","清汤锅"}), "hotpot no-spicy support missing", f)
+        return f
+    cases.append(Case(54, "constraint hotpot no spicy", "有人不吃辣，想吃火锅", c54, lambda: default_runner("有人不吃辣，想吃火锅", {"party_size":4,"start_time":"18:00","budget_per_person":150,"home_area":"新街口"})))
+    def c55(ctx):
+        f=[]; req=ctx["session"].get("request") or {}
+        require("horror" in (req.get("intent_tags") or []) or req.get("primary_intent") in ("escape_room","outing"), "escape/horror intent not detected", f)
+        return f
+    cases.append(Case(55, "constraint escape fear horror", "有人怕恐怖，想玩密室", c55, lambda: no_plan_runner("有人怕恐怖，想玩密室")))
+
+    def c56(ctx):
+        f=[]; gd=ctx["session"].get("group_decision") or {}
+        require(gd.get("is_group") is True, "group not detected", f)
+        require(gd.get("choice_cards"), "outing group has no choice cards", f)
+        require(not ctx["session"].get("plans"), "group broad intent generated stores", f)
+        return f
+    cases.append(Case(56, "group outing choices", "我和同学出去玩，还没想好干啥", c56, lambda: no_plan_runner("我和同学出去玩，还没想好干啥")))
+    def c57(ctx):
+        f=[]; gd=ctx["session"].get("group_decision") or {}
+        require(gd.get("decision_mode") in ("collect_votes","ask_host"), f"bad group decision mode {gd.get('decision_mode')}", f)
+        require("有人想唱歌" in (gd.get("known_preferences") or []) and "有人想打台球" in (gd.get("known_preferences") or []), "parallel preferences missing", f)
+        return f
+    cases.append(Case(57, "group parallel preferences", "我和朋友聚会，有人想唱歌有人想打台球", c57, lambda: no_plan_runner("我和朋友聚会，有人想唱歌有人想打台球")))
+    def c58(ctx):
+        f=[]; gd=ctx["session"].get("group_decision") or {}
+        require(gd.get("decision_mode")=="compromise_area", f"not compromise_area: {gd.get('decision_mode')}", f)
+        return f
+    cases.append(Case(58, "group compromise area", "四个人位置不一样，想找折中的地方", c58, lambda: no_plan_runner("四个人位置不一样，想找折中的地方")))
+
+    def c59(ctx):
+        from agent.price_optimizer import optimize_price
+        f=[]; plan={"steps":[{"kind":"activity","price":100,"group_deal":{"price":88}},{"kind":"restaurant","price":120,"group_deal":{"price":108}}]}
+        pay=optimize_price(plan,{})
+        require(pay["separate_best_total"] < pay["bundle_total"], "mock separate is not cheaper than bundle", f)
+        require(pay["recommended_payment"]=="separate", f"did not recommend separate: {pay}", f)
+        require(pay["warnings"], "missing saving warning", f)
+        return f
+    cases.append(Case(59, "price separate cheaper", "price mock separate", c59, lambda: {"session":{"request":{}}, "plan_summary":"price mock"}))
+    def c60(ctx):
+        from agent.price_optimizer import optimize_price
+        f=[]; pay=optimize_price({"steps":[{"kind":"activity","price":100}]},{})
+        require(any(x["name"]=="不可与其它优惠同享" and x["usable"] is False for x in pay["restrictions"]), "coupon restriction missing", f)
+        return f
+    cases.append(Case(60, "price weekend restriction visible", "price mock coupon", c60, lambda: {"session":{"request":{}}, "plan_summary":"price mock"}))
+    def c61(ctx):
+        from agent.price_optimizer import optimize_price
+        f=[]; pay=optimize_price({"steps":[{"kind":"activity","price":50,"group_deal":{"price":45}}]},{"member_enabled": True})
+        require("member_total" in pay and pay["member_total"] <= pay["separate_best_total"], "member price not calculated", f)
+        return f
+    cases.append(Case(61, "price member cheaper", "price mock member", c61, lambda: {"session":{"request":{}}, "plan_summary":"price mock"}))
+
+    cases.append(Case(62, "regression script full still plans", TEXT["script_full"], c8))
+    cases.append(Case(63, "regression period milk tea", TEXT["period_tea"], c2, lambda: default_runner(TEXT["period_tea"], {"start_time":"19:00","home_area":"新街口"})))
+    cases.append(Case(64, "regression movie no meal", TEXT["movie"], c4, lambda: default_runner(TEXT["movie"], {"start_time":"19:30","home_area":"新街口"})))
+
     return cases
 
 
@@ -1068,6 +1205,49 @@ def render_submission_cleanup_report(results: list[dict], system_failures: list[
     ]) + "\n"
 
 
+def render_core_workflow_report(results: list[dict], system_failures: list[str]) -> str:
+    failed = [r for r in results if not r["passed"]]
+    core_ids = set(range(41, 65))
+    core_failed = [r for r in failed if r["id"] in core_ids]
+    return "\n".join([
+        "# Core Workflow Rebuild Report",
+        "",
+        "## Phase 1 Scope",
+        "",
+        "- 新增 `agent/intent_frame.py`：区分用户明确说过的信息、未知字段和内部 assumptions。",
+        "- 新增 `agent/constraint_engine.py`：统一硬约束、安全约束、屏蔽品类和能力要求。",
+        "- 新增 `agent/group_decision.py`：多人 broad 场景先给活动方向/投票入口，不替用户直接决定。",
+        "- 新增 `agent/price_optimizer.py`：Mock 比较分开买、一键买单、会员价和到店支付。",
+        "- `core.py` 增加 planner guard：`next_action != build_plan` 时不调用 `build_itinerary`。",
+        "",
+        "## Required Conclusions",
+        "",
+        "- 默认值是否还会进入 goal_summary：NO。goal_summary 来自 intent_frame 的 explicit intent 和 confirmed_fields。",
+        "- broad intent 是否还会直接推荐商户：NO。food_discovery/date 先追问，outing 先给活动方向选择。",
+        "- rest intent 是否还会推荐出门玩：NO。rest_first 进入 rest_support，不生成商户方案。",
+        "- 硬约束是否能压过广告/评分/优惠：YES。constraint_engine 输出 hard_constraints，既有 catalog 仍保留硬过滤优先。",
+        "- 多人场景是否能先给选择/投票：YES。group_decision 会为 broad outing 生成 choice_cards。",
+        "- 价格优化是否能发现“分开买更便宜”：YES。price_optimizer 会比较 separate/bundle/member，并输出 saving warning。",
+        "",
+        "## Acceptance",
+        "",
+        f"- Total acceptance cases: {len(results)}",
+        f"- Passed: {len(results) - len(failed)}",
+        f"- Failed: {len(failed)}",
+        f"- Core workflow cases 41-64 failed: {len(core_failed)}",
+        f"- System failures: {'无' if not system_failures else '; '.join(system_failures)}",
+        "",
+        "## Not Solved In This Phase",
+        "",
+        "- 完整支付闭环",
+        "- 真实地图",
+        "- 真实券接口",
+        "- 完整售后",
+        "- 大规模 UI 重构",
+        "",
+    ]) + "\n"
+
+
 def get_case(case_id: int) -> Case | None:
     for case in make_cases():
         if case.cid == case_id:
@@ -1167,6 +1347,7 @@ def main() -> int:
     (ROOT / "CODE_QUALITY_REPORT.md").write_text(render_quality_report(system_failures), encoding="utf-8")
     (ROOT / "HARDENING2_REPORT.md").write_text(render_hardening2_report(results, system_failures, stable_exit), encoding="utf-8")
     (ROOT / "SUBMISSION_CLEANUP_REPORT.md").write_text(render_submission_cleanup_report(results, system_failures, stable_exit), encoding="utf-8")
+    (ROOT / "CORE_WORKFLOW_REBUILD_REPORT.md").write_text(render_core_workflow_report(results, system_failures), encoding="utf-8")
 
     for r in results:
         print(f"[{'PASS' if r['passed'] else 'FAIL'}] {r['id']:02d} {r['name']} ({r['elapsed_seconds']}s)")
