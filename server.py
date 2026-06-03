@@ -32,9 +32,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 演示用：单用户全局 Agent
-agent = Agent()
+# 演示用：按 session_id 隔离 Agent，避免多用户串会话
+AGENTS: dict[str, Agent] = {}
 VOTE_ROOMS: dict[str, dict] = {}
+
+
+def _session_id(body: dict | None = None, request: Request | None = None) -> str:
+    body = body or {}
+    if request:
+        sid = request.headers.get("X-Session-Id") or request.query_params.get("session_id")
+        if sid:
+            return sid[:80]
+    return str(body.get("session_id") or "default")[:80]
+
+
+def _agent_for(session_id: str) -> Agent:
+    if session_id not in AGENTS:
+        AGENTS[session_id] = Agent()
+    return AGENTS[session_id]
 
 
 def _safe_session(s: dict) -> dict:
@@ -119,10 +134,9 @@ def _create_vote_room(session: dict, base_url: str = "http://127.0.0.1:8000") ->
 
 
 def _sync_session_vote_room(room_id: str):
-    if not agent.session or not agent.session.get("vote_room"):
-        return
-    if agent.session["vote_room"].get("room_id") == room_id and room_id in VOTE_ROOMS:
-        agent.session["vote_room"] = _public_vote_room(VOTE_ROOMS[room_id])
+    for ag in AGENTS.values():
+        if ag.session and ag.session.get("vote_room") and ag.session["vote_room"].get("room_id") == room_id and room_id in VOTE_ROOMS:
+            ag.session["vote_room"] = _public_vote_room(VOTE_ROOMS[room_id])
 
 
 def _ensure_vote_room(session: dict):
@@ -139,8 +153,9 @@ async def plan(request: Request):
     """主流程：一句话 → 解析 → 排方案。"""
     try:
         body = await request.json()
+        ag = _agent_for(_session_id(body, request))
         text = body.get("text", "")
-        session = agent.run(text)
+        session = ag.run(text)
         _ensure_vote_room(session)
         return {"ok": True, "session": _safe_session(session)}
     except Exception as e:
@@ -154,8 +169,9 @@ async def refine(request: Request):
     """
     try:
         body = await request.json()
+        ag = _agent_for(_session_id(body, request))
         answers = body.get("answers", {}) or {}
-        session = agent.refine(answers)
+        session = ag.refine(answers)
         _ensure_vote_room(session)
         return {"ok": True, "session": _safe_session(session)}
     except Exception as e:
@@ -167,9 +183,10 @@ async def confirm(request: Request):
     """最终确认：执行预订 + 生成分享卡。"""
     try:
         body = await request.json()
+        ag = _agent_for(_session_id(body, request))
         if "plan_index" in body:
-            agent.choose(body.get("plan_index", 0))
-        session = agent.confirm_and_execute()
+            ag.choose(body.get("plan_index", 0))
+        session = ag.confirm_and_execute()
         return {"ok": True, "session": _safe_session(session)}
     except Exception as e:
         return JSONResponse(status_code=200, content={"ok": False, "error": str(e)})
@@ -180,8 +197,9 @@ async def select_plan(request: Request):
     """只选择候选方案，不预约、不下单、不生成分享卡。"""
     try:
         body = await request.json()
+        ag = _agent_for(_session_id(body, request))
         idx = body.get("plan_index", 0)
-        session = agent.choose(idx)
+        session = ag.choose(idx)
         _ensure_vote_room(session)
         return {"ok": True, "session": _safe_session(session)}
     except Exception as e:
@@ -193,8 +211,9 @@ async def exception(request: Request):
     """注入异常并局部重排。"""
     try:
         body = await request.json()
+        ag = _agent_for(_session_id(body, request))
         exc_type = body.get("type", "")
-        session = agent.inject_exception(exc_type, body.get("context") or {})
+        session = ag.inject_exception(exc_type, body.get("context") or {})
         return {"ok": True, "session": _safe_session(session)}
     except Exception as e:
         return JSONResponse(status_code=200, content={"ok": False, "error": str(e)})
@@ -205,18 +224,24 @@ async def reject(request: Request):
     """用户主动拒绝一个商户，下次检索前剔除。"""
     try:
         body = await request.json()
+        ag = _agent_for(_session_id(body, request))
         mid = body.get("merchant_id", "")
-        session = agent.reject_merchant(mid)
+        session = ag.reject_merchant(mid)
         return {"ok": True, "session": _safe_session(session)}
     except Exception as e:
         return JSONResponse(status_code=200, content={"ok": False, "error": str(e)})
 
 
 @app.post("/reset")
-async def reset():
+async def reset(request: Request):
     """新会话。"""
-    global agent
-    agent = Agent()
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    sid = _session_id(body, request)
+    AGENTS[sid] = Agent()
     return {"ok": True, "message": "已重置"}
 
 
@@ -224,8 +249,14 @@ async def reset():
 # 多人投票接口
 # ─────────────────────────────────────────────────────────────────
 @app.post("/vote/create")
-async def vote_create():
-    room = _create_vote_room(agent.session)
+async def vote_create(request: Request):
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    ag = _agent_for(_session_id(body, request))
+    room = _create_vote_room(ag.session)
     if not room:
         return {"ok": False, "message": "当前方案不足以创建投票房间"}
     return {"ok": True, "room": room}

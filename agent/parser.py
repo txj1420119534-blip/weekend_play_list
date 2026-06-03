@@ -38,6 +38,8 @@ NO_OUTDOOR_RE = r"不想出门|不出门|不想出去|在家|宅家"
 NO_ICE_RE = r"不能喝冰|不能冰|不要冰|不加冰|去冰|别冰|喝热的|热饮|温热"
 NOT_TOO_SWEET_RE = r"不要太甜|别太甜|不太甜|少糖|低糖|半糖|三分糖|无糖"
 BODY_UNCOMFORTABLE_RE = r"生理期|姨妈|来例假|肚子不舒服|胃不舒服|身体不舒服|感冒|不舒服"
+NO_ALCOHOL_RE = r"别有酒|不要酒|不喝酒|不能喝酒|不要喝酒|无酒精|别推荐酒|不含酒"
+CAFFEINE_FREE_RE = r"不要咖啡因|不含咖啡因|不能有咖啡因|无咖啡因|低咖啡因"
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -64,6 +66,17 @@ EXPLICIT_KEYWORDS = [
     ("ktv",      "PLAY",   "KTV"),
     ("唱歌",     "PLAY",   "KTV"),
     ("唱K",      "PLAY",   "KTV"),
+    ("台球",     "PLAY",   "台球"),
+    ("桌球",     "PLAY",   "台球"),
+    ("按摩",     "PLAY",   "按摩"),
+    ("足疗",     "PLAY",   "按摩"),
+    ("SPA",      "PLAY",   "按摩"),
+    ("spa",      "PLAY",   "按摩"),
+    ("马鞍山",   "PLAY",   "citywalk"),
+    ("citywalk", "PLAY",  "citywalk"),
+    ("Citywalk", "PLAY",  "citywalk"),
+    ("酒店",     "PLAY",   "酒店"),
+    ("订个酒店", "PLAY",   "酒店"),
     ("桌游",     "PLAY",   "桌游"),
     ("看展",     "PLAY",   "展览"),
     ("展览",     "PLAY",   "展览"),
@@ -222,6 +235,10 @@ def _derive_primary_intent(text: str, result: dict, explicit_cats: list[dict], s
             "密室": "escape_room",
             "桌游": "board_game",
             "KTV": "ktv",
+            "台球": "billiards",
+            "按摩": "massage",
+            "citywalk": "citywalk",
+            "酒店": "hotel",
         }.get(cat, "play"), "PLAY"
     if result.get("scene") == "stay_in":
         return "stay_in", "STAYIN"
@@ -240,6 +257,10 @@ def _derive_negative_intents(text: str) -> list[str]:
         out.append("no_ice")
     if re.search(NOT_TOO_SWEET_RE, text):
         out.append("not_too_sweet")
+    if re.search(NO_ALCOHOL_RE, text):
+        out.append("no_alcohol")
+    if re.search(CAFFEINE_FREE_RE, text):
+        out.append("caffeine_free")
     return out
 
 
@@ -252,6 +273,10 @@ def _derive_safety_flags(text: str, result: dict) -> list[str]:
     if re.search(BODY_UNCOMFORTABLE_RE, text):
         flags.add("body_uncomfortable")
         flags.add("cannot_ice")
+    if re.search(NO_ALCOHOL_RE, text):
+        flags.add("no_alcohol")
+    if re.search(CAFFEINE_FREE_RE, text):
+        flags.add("caffeine_free")
     if result.get("has_kid"):
         flags.add("kid_safe")
     if result.get("transport") == "self_drive":

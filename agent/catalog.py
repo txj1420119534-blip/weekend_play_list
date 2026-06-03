@@ -164,6 +164,8 @@ def search_merchants(
                 continue
             if "body_uncomfortable" in safety_flags and not body_suitability.get("body_uncomfortable", False):
                 continue
+            if "caffeine_free" in safety_flags and drink_options.get("caffeine") not in ("none", "free", "caffeine_free"):
+                continue
 
         candidates.append(m)
 
@@ -193,6 +195,8 @@ def search_merchants(
                 score += 5
             if drink_preferences.get("ice_level") in ice_levels:
                 score += 5
+            if "caffeine_free" in safety_flags and drink_options.get("caffeine") in ("none", "free", "caffeine_free"):
+                score += 8
         if "relax" in prefs and ("轻松" in tags_text or "安静" in tags_text):
             score += 4
         if slot_role == "PLAY" and m.get("category") == "剧本杀":

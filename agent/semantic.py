@@ -34,8 +34,10 @@ INTENT_LEXICON = {
     "citywalk": ["citywalk", "Citywalk", "城市漫步", "压马路", "逛街", "散步", "随便走走", "拍街景"],
     "handmade": ["手作", "陶艺", "做手工", "diy", "DIY"],
     "market": ["市集", "集市", "逛摊"],
-    "sport": ["运动", "滑冰", "骑行", "高尔夫", "台球", "保龄球"],
+    "sport": ["运动", "滑冰", "骑行", "高尔夫", "保龄球"],
+    "billiards": ["台球", "桌球", "黑八", "斯诺克"],
     "massage": ["按摩", "足疗", "spa", "SPA", "推拿", "捏肩", "放松一下"],
+    "hotel": ["酒店", "订个酒店", "休息房", "钟点房", "开个房", "休息一下"],
     "birthday": ["生日", "庆生", "过生日", "蛋糕"],
     "party": ["聚会", "团建", "朋友聚", "组局", "局"],
     "date": ["情侣", "对象", "约会", "男朋友", "女朋友", "暧昧", "二人世界"],
@@ -54,7 +56,8 @@ INTENT_LEXICON = {
     "nearby": ["别太远", "不要太远", "离家近", "近一点", "附近"],
     "light_food": ["清淡", "减肥", "低脂", "轻食", "不辣"],
     "no_spicy": ["不吃辣", "不要辣", "不能吃辣", "不辣"],
-    "no_alcohol": ["不喝酒", "不要酒", "不能喝酒"],
+    "no_alcohol": ["不喝酒", "不要酒", "不能喝酒", "别有酒", "无酒精", "不含酒", "不要喝酒"],
+    "caffeine_free": ["不要咖啡因", "不含咖啡因", "不能有咖啡因", "无咖啡因", "低咖啡因"],
     "no_meal": ["不想吃饭", "不吃饭", "不要吃饭", "不安排吃饭", "不要餐厅"],
     "no_ice": ["不能喝冰", "不能冰", "不要冰", "去冰", "不加冰", "热的", "热饮"],
     "not_too_sweet": ["不要太甜", "别太甜", "不太甜", "少糖", "低糖", "半糖", "三分糖", "无糖"],
@@ -70,6 +73,10 @@ INTENT_CATEGORY_MAP = {
     "escape_room": {"role": "PLAY", "category": "密室"},
     "board_game": {"role": "PLAY", "category": "桌游"},
     "ktv": {"role": "PLAY", "category": "KTV"},
+    "billiards": {"role": "PLAY", "category": "台球"},
+    "massage": {"role": "PLAY", "category": "按摩"},
+    "citywalk": {"role": "PLAY", "category": "citywalk"},
+    "hotel": {"role": "PLAY", "category": "酒店"},
     "movie": {"role": "PLAY", "category": "电影院"},
     "exhibition": {"role": "PLAY", "category": "展览"},
     "handmade": {"role": "PLAY", "category": "手作"},
@@ -106,12 +113,12 @@ def analyze_semantics(text: str) -> dict:
         scene = "couple"
     elif "dinner" in tag_set and not (tag_set & {
         "script_game", "escape_room", "board_game", "ktv", "movie", "exhibition",
-        "citywalk", "handmade", "market", "sport", "massage"
+        "citywalk", "handmade", "market", "sport", "massage", "billiards", "hotel"
     }):
         scene = "food_only"
     elif tag_set & {
         "script_game", "escape_room", "board_game", "ktv", "movie", "exhibition",
-        "citywalk", "handmade", "market", "sport", "massage", "birthday", "party",
+        "citywalk", "handmade", "market", "sport", "massage", "billiards", "hotel", "birthday", "party",
         "dinner",
     }:
         scene = "friends_out"

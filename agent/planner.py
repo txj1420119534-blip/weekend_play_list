@@ -289,6 +289,8 @@ def build_itinerary(request: dict, logbook=None) -> list[dict]:
                 scoped_cats = [cat for cat in role_cats if cat in base_wants]
                 if scoped_cats:
                     want = scoped_cats
+                elif not (scene == "stay_in" and role == "STAYIN"):
+                    want = role_cats
             else:
                 want = role_cats
         cs = search_merchants(role, request, logbook, want=want,
@@ -597,8 +599,78 @@ def replan(session: dict, exception_type: str, context: dict | None = None, logb
         return _replan_one_node(chosen, request, steps, "activity", context, logbook)
     if exception_type == "time_conflict":
         return _replan_time(chosen, request, steps, logbook)
+    if exception_type == "budget_conflict":
+        return _replan_budget(chosen, request, steps, context or {}, logbook)
     return {"before": None, "after": None, "reason": f"未知异常 {exception_type}",
             "still_ok": {}, "new_plan": chosen}
+
+
+def _replan_budget(chosen: dict, request: dict, steps: list, context: dict | None = None, logbook=None) -> dict:
+    """Replace the most expensive business node with a cheaper same-category candidate."""
+    from agent.catalog import search_merchants
+
+    business = [
+        (i, s) for i, s in enumerate(steps)
+        if s.get("kind") in ("activity", "restaurant", "addon", "stayin")
+    ]
+    if not business:
+        return {"before": None, "after": None, "changed_kind": "budget", "reason": "没有可替换节点",
+                "still_ok": {}, "needs_user_confirm": True, "new_plan": chosen}
+
+    old_idx, old_step = max(business, key=lambda item: item[1].get("cost", 0))
+    role = old_step.get("slot_role") or {"activity": "PLAY", "restaurant": "EAT", "addon": "ADDON", "stayin": "STAYIN"}.get(old_step.get("kind"), "PLAY")
+    rejected = set(request.get("_rejected_ids", set()) or set())
+    rejected.add(old_step.get("id"))
+    local_request = dict(request)
+    local_request["budget_per_person"] = max(1, int(old_step.get("cost", 0) or 0) - 1)
+    candidates = search_merchants(role, local_request, logbook=None, want=[old_step.get("category")], exclude_ids=rejected)
+    candidates = [c for c in candidates if c.get("price", 0) < old_step.get("cost", 0)]
+    candidates.sort(key=lambda c: (c.get("price", 0), -c.get("rating", 0)))
+    if not candidates:
+        return {
+            "before": old_step,
+            "after": None,
+            "changed_kind": "budget",
+            "reason": f"同品类「{old_step.get('category')}」没有更便宜且符合硬约束的备选，需发起人放宽预算或换品类",
+            "still_ok": {"budget": False, "time": True, "distance": True},
+            "needs_user_confirm": True,
+            "relaxation_options": _relax_options(request, role, [old_step.get("category")]),
+            "new_plan": chosen,
+        }
+
+    new_m = candidates[0]
+    new_steps = list(steps)
+    new_steps[old_idx] = {
+        **old_step,
+        "id": new_m["id"],
+        "name": new_m["name"],
+        "area": new_m["area"],
+        "cost": new_m.get("price", 0),
+        "rating": new_m.get("rating", 0),
+        "category": new_m.get("category"),
+        "image": new_m.get("image", ""),
+        "tags": new_m.get("review_tags", []),
+        "can_reserve": new_m.get("can_reserve", False),
+        "queue_minutes": new_m.get("queue_minutes", 0),
+        "group_deal": new_m.get("group_deal"),
+        "review_count": new_m.get("review_count", 0),
+        "review_snippet": new_m.get("review_snippet", ""),
+        "recommended_dishes": new_m.get("recommended_dishes", []),
+        "flags": new_m.get("flags", {}),
+        **_merchant_business_fields(new_m),
+    }
+    total_cost = sum(s.get("cost", 0) for s in new_steps if s.get("kind") in ("activity", "restaurant", "stayin", "addon", "delivery"))
+    new_plan = {**chosen, "steps": new_steps, "total_cost_per_person": total_cost}
+    new_plan["score"] = score_plan(new_plan, request)
+    return {
+        "before": old_step,
+        "after": new_steps[old_idx],
+        "changed_kind": "budget",
+        "reason": f"已把「{old_step.get('name')}」换成更便宜的「{new_m.get('name')}」，其它节点不动，人均变为 ¥{total_cost}",
+        "still_ok": {"budget": total_cost <= request.get("budget_per_person", 999), "time": True, "distance": True},
+        "needs_user_confirm": total_cost > request.get("budget_per_person", 999),
+        "new_plan": new_plan,
+    }
 
 
 def _replan_one_node(chosen: dict, request: dict, steps: list, kind: str, context: dict | None = None, logbook=None) -> dict:

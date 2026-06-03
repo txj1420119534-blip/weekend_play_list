@@ -1,5 +1,60 @@
 # Change Summary
 
+## Qualification Hardening 2: Code Eligibility and Business Coverage
+
+### 修改文件列表
+
+- `acceptance_check.py`
+- `agent/parser.py`
+- `agent/semantic.py`
+- `agent/catalog.py`
+- `agent/planner.py`
+- `agent/core.py`
+- `server.py`
+- `web/app.html`
+- `data/merchants.json`
+- `data/travel.json`
+- `ACCEPTANCE_REPORT.md`
+- `CODE_QUALITY_REPORT.md`
+- `HARDENING2_REPORT.md`
+- `CHANGE_SUMMARY.md`
+
+### 每个文件改了什么
+
+- `acceptance_check.py`：重写为 Hardening 2 验收脚本；每个 case 有单用例超时；第 15 条真实临时修改商户 `ad_bid` 并恢复；第 25 条只验证 replan 自己返回的 `needs_user_confirm=true`；新增 10 个真实业务/反馈用例。
+- `agent/parser.py`：新增台球、按摩、citywalk、马鞍山、酒店等明确品类识别；新增 `no_alcohol` 和 `caffeine_free` 安全偏好识别。
+- `agent/semantic.py`：补充台球、酒店、无酒、无咖啡因等语义词条，并将台球/酒店纳入活动场景判断。
+- `agent/catalog.py`：饮品检索增加 `caffeine_free` 硬过滤；广告权重仍只影响软排序，不能突破硬约束。
+- `agent/planner.py`：用户明确点名品类时优先覆盖场景模板默认 want；新增 `budget_conflict` 局部重排；异常预算超出由 replan 自己标记 `needs_user_confirm`。
+- `agent/core.py`：新增 feedback_intent，已有 chosen plan 时用户反馈排队、满座、朋友晚到、太贵、太恐怖、换近一点会进入局部重排。
+- `server.py`：用 `AGENTS[session_id]` 最小隔离多用户会话；`/reset` 只重置当前 session_id 对应 Agent。
+- `web/app.html`：不改视觉，仅用 localStorage 生成 `session_id` 并随请求传给后端。
+- `data/merchants.json`：新增台球、按摩、酒店、citywalk、第二家影院、第二家火锅；补充 KTV 无酒/亲子可唱、奶茶无咖啡因能力。
+- `data/travel.json`：补充马鞍山相关 Mock 交通时间。
+- `ACCEPTANCE_REPORT.md`：更新为 40 条验收结果。
+- `CODE_QUALITY_REPORT.md`：更新多 session、数据损坏、LLM 边界、真实 API 和 key 检查结论。
+- `HARDENING2_REPORT.md`：新增本轮加固专项报告。
+
+### 验收结果
+
+- `python acceptance_check.py` 可稳定退出。
+- 当前通过率：40/40 (100.0%)。
+- 失败用例：无。
+
+### 仍未解决的问题
+
+- session_id 隔离未持久化，服务重启后会话丢失。
+- 投票、真实预约、真实库存、真实支付和优惠仍是 Mock。
+- 跨城 citywalk 和复杂路线仍是轻规则，不是真实地图规划。
+
+### 最可能出 bug 的 5 个地方
+
+1. 夜间跨 0 点营业时间仍是轻规则，KTV 等跨午夜门店可能进入 `needs_relaxation`。
+2. session_id 没有过期清理，长时间运行需要清理策略。
+3. 用户反馈映射为轻量规则，不是完整自然语言对话状态机。
+4. 人工修改商户 JSON 字段类型可能影响过滤和排序。
+5. DeepSeek 接入后如返回异常 JSON，仍需依赖规则兜底和字段校验。
+
 ## Qualification Hardening: Acceptance Scenarios and Backend Fixes
 
 ### 修改文件列表

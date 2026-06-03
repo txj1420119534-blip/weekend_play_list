@@ -74,6 +74,29 @@ def _normalize_request_types(request: dict) -> dict:
     return request
 
 
+def _detect_feedback_intent(text: str) -> dict | None:
+    text = text or ""
+    if re.search(r"朋友.*晚|晚半小时|晚到|迟到|顺一下|顺延", text):
+        return {"type": "time_conflict", "feedback_intent": "friend_late"}
+    if re.search(r"满座|排队太久|排队久|到.*门口.*排队|换一家", text):
+        return {
+            "type": "restaurant_full",
+            "feedback_intent": "queue_or_full",
+            "context": {"location_state": "near_current_merchant"},
+        }
+    if re.search(r"太恐怖|换轻松一点|轻松一点|别太吓人", text):
+        return {"type": "ticket_soldout", "feedback_intent": "too_horror", "script_style": "欢乐本"}
+    if re.search(r"太贵|预算超|超预算|换便宜点|便宜点", text):
+        return {"type": "budget_conflict", "feedback_intent": "too_expensive"}
+    if re.search(r"换近一点|近一点|太远|别太远", text):
+        return {
+            "type": "restaurant_full",
+            "feedback_intent": "nearer",
+            "context": {"location_state": "near_current_merchant"},
+        }
+    return None
+
+
 class Agent:
     """本地生活执行助手的核心编排者。流程由 Python 代码顺序驱动，不由大模型决定。"""
 
@@ -109,6 +132,27 @@ class Agent:
         一句话 → 解析 → (若信息够 → 排方案 → 查余位)；
         若信息缺失 → 立即返回追问，让用户先补全再走 refine()。
         """
+        feedback = _detect_feedback_intent(text)
+        if feedback and self.session.get("chosen"):
+            self.logbook.clear()
+            request = self.session.get("request") or {}
+            request["feedback_intent"] = feedback.get("feedback_intent")
+            if feedback.get("script_style"):
+                request["script_style"] = feedback["script_style"]
+                prefs = set(request.get("preferences", []) or [])
+                prefs.add("easy_pace")
+                prefs.add("newbie_friendly")
+                request["preferences"] = list(prefs)
+            context = dict(feedback.get("context") or {})
+            if context.get("location_state") == "near_current_merchant":
+                for step in self.session.get("chosen", {}).get("steps", []):
+                    if step.get("kind") in ("restaurant", "activity"):
+                        context.setdefault("current_area", step.get("area"))
+                        context.setdefault("current_merchant_id", step.get("id"))
+                        break
+            self.logbook.add("用户反馈", "warning", f"识别为 {feedback.get('feedback_intent')}，进入局部重排")
+            return self.inject_exception(feedback["type"], context)
+
         self.logbook.clear()
         self.session = self._fresh_session()
 

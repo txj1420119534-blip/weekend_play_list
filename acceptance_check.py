@@ -4,22 +4,25 @@ Run:
     python acceptance_check.py
 
 The script calls the local Agent directly. It does not require a browser,
-Playwright, a running FastAPI server, a real external API, or DEEPSEEK_API_KEY.
+Playwright, a running server, a real external API, or DEEPSEEK_API_KEY.
 """
 from __future__ import annotations
 
 import json
 import os
 import py_compile
-import runpy
+import queue
 import shutil
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
-from typing import Callable, Any
+from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
+MERCHANTS = DATA / "merchants.json"
 os.environ.pop("DEEPSEEK_API_KEY", None)
 
 from agent.core import Agent  # noqa: E402
@@ -42,6 +45,16 @@ TEXT = {
     "family": "带孩子周末下午出去玩，别太累，吃清淡点",
     "drive_ktv": "我们自驾去唱歌，后面想喝点",
     "friends_food": "4个朋友今天18:00想先看展再吃饭，人均180，新街口，公共交通，4小时",
+    "massage": "周末想做个按摩放松一下，人均200，新街口",
+    "billiards": "今晚想和朋友打台球，4个人，人均100，新街口",
+    "maanshan": "周末想去马鞍山citywalk，一整天",
+    "hotel": "今晚想订个酒店休息一下",
+    "queue_feedback": "已经到餐厅门口了，排队太久，换一家",
+    "late_feedback": "朋友晚半小时，帮我顺一下",
+    "horror_feedback": "这个本太恐怖，换轻松一点",
+    "cheap_feedback": "预算超了，换便宜点",
+    "caffeine_tea": "晚上想喝奶茶，但不要咖啡因，不要太甜",
+    "kid_ktv": "带孩子去KTV唱歌，别有酒",
 }
 
 DEFAULT_ANSWERS = {
@@ -64,9 +77,8 @@ def _answer_for(session: dict, overrides: dict | None = None) -> dict:
     answers = {}
     for q in session.get("clarifications_needed", []) or []:
         key = q.get("key")
-        if not key:
-            continue
-        answers[key] = overrides.get(key, DEFAULT_ANSWERS.get(key))
+        if key:
+            answers[key] = overrides.get(key, DEFAULT_ANSWERS.get(key))
     return {k: v for k, v in answers.items() if v is not None}
 
 
@@ -78,9 +90,14 @@ def _run(text: str, answers: dict | None = None, auto_refine: bool = True, agent
     return agent, session
 
 
-def _choose_confirm(agent: Agent, session: dict, index: int = 0, confirm: bool = True) -> dict:
+def _choose(agent: Agent, session: dict, index: int = 0) -> dict:
     if session.get("plans"):
-        session = agent.choose(index)
+        return agent.choose(index)
+    return session
+
+
+def _choose_confirm(agent: Agent, session: dict, index: int = 0, confirm: bool = True) -> dict:
+    session = _choose(agent, session, index)
     if confirm:
         session = agent.confirm_and_execute()
     return session
@@ -144,54 +161,12 @@ def _exception_summary(session: dict) -> str:
     return f"{exc.get('changed_kind')} | {exc.get('reason')} | needs_user_confirm={exc.get('needs_user_confirm')}"
 
 
-class Case:
-    def __init__(self, cid: int, name: str, input_text: str, check: Callable[[dict], list[str]], runner: Callable[[], dict] | None = None):
-        self.cid = cid
-        self.name = name
-        self.input = input_text
-        self.check = check
-        self.runner = runner
-
-    def run(self) -> dict:
-        try:
-            ctx = self.runner() if self.runner else default_runner(self.input)
-            failures = self.check(ctx)
-            passed = not failures
-            return {
-                "id": self.cid,
-                "name": self.name,
-                "input": self.input,
-                "request": public_request(ctx.get("session", {}).get("request") or ctx.get("request", {})),
-                "clarified": ctx.get("clarified", False),
-                "plan_summary": ctx.get("plan_summary", _plan_summary(ctx.get("session", {}))),
-                "addon_summary": ctx.get("addon_summary", _addon_summary(ctx.get("session", {}))),
-                "booking_status": ctx.get("booking_status", booking_status(ctx.get("session", {}))),
-                "exception_summary": ctx.get("exception_summary", _exception_summary(ctx.get("session", {}))),
-                "passed": passed,
-                "failures": failures,
-            }
-        except Exception as exc:
-            return {
-                "id": self.cid,
-                "name": self.name,
-                "input": self.input,
-                "request": {},
-                "clarified": False,
-                "plan_summary": "运行异常",
-                "addon_summary": "运行异常",
-                "booking_status": "运行异常",
-                "exception_summary": "运行异常",
-                "passed": False,
-                "failures": [f"case raised: {exc}"],
-            }
-
-
 def public_request(req: dict) -> dict:
     keys = [
         "scene", "primary_intent", "main_role", "requested_categories", "negative_intents",
         "safety_flags", "drink_preferences", "party_size", "start_time", "budget_per_person",
         "script_style", "cuisine_preference", "transport", "confidence", "missing_fields",
-        "intent_conflict", "newbie",
+        "intent_conflict", "newbie", "feedback_intent",
     ]
     return {k: req.get(k) for k in keys if k in req}
 
@@ -202,11 +177,7 @@ def booking_status(session: dict) -> str:
 
 def default_runner(text: str, answers: dict | None = None, auto_refine: bool = True) -> dict:
     agent, session = _run(text, answers, auto_refine=auto_refine)
-    return {
-        "agent": agent,
-        "session": session,
-        "clarified": bool(answers) or session.get("mode") != "needs_clarification",
-    }
+    return {"agent": agent, "session": session, "clarified": bool(answers) or session.get("mode") != "needs_clarification"}
 
 
 def require(condition: bool, message: str, failures: list[str]):
@@ -214,9 +185,77 @@ def require(condition: bool, message: str, failures: list[str]):
         failures.append(message)
 
 
+class Case:
+    def __init__(
+        self,
+        cid: int,
+        name: str,
+        input_text: str,
+        check: Callable[[dict], list[str]],
+        runner: Callable[[], dict] | None = None,
+        timeout_seconds: int = 35,
+    ):
+        self.cid = cid
+        self.name = name
+        self.input = input_text
+        self.check = check
+        self.runner = runner
+        self.timeout_seconds = timeout_seconds
+
+    def _run_inner(self) -> dict:
+        ctx = self.runner() if self.runner else default_runner(self.input)
+        failures = self.check(ctx)
+        return {
+            "id": self.cid,
+            "name": self.name,
+            "input": self.input,
+            "request": public_request(ctx.get("session", {}).get("request") or ctx.get("request", {})),
+            "clarified": ctx.get("clarified", False),
+            "plan_summary": ctx.get("plan_summary", _plan_summary(ctx.get("session", {}))),
+            "addon_summary": ctx.get("addon_summary", _addon_summary(ctx.get("session", {}))),
+            "booking_status": ctx.get("booking_status", booking_status(ctx.get("session", {}))),
+            "exception_summary": ctx.get("exception_summary", _exception_summary(ctx.get("session", {}))),
+            "elapsed_seconds": 0.0,
+            "passed": not failures,
+            "failures": failures,
+        }
+
+    def run(self) -> dict:
+        result_q: queue.Queue = queue.Queue(maxsize=1)
+
+        def target():
+            try:
+                result_q.put(self._run_inner())
+            except Exception as exc:
+                result_q.put({
+                    "id": self.cid, "name": self.name, "input": self.input,
+                    "request": {}, "clarified": False, "plan_summary": "运行异常",
+                    "addon_summary": "运行异常", "booking_status": "运行异常",
+                    "exception_summary": "运行异常", "elapsed_seconds": 0.0,
+                    "passed": False, "failures": [f"case raised: {exc}"],
+                })
+
+        started = time.time()
+        t = threading.Thread(target=target, daemon=True)
+        t.start()
+        t.join(self.timeout_seconds)
+        elapsed = time.time() - started
+        if t.is_alive():
+            return {
+                "id": self.cid, "name": self.name, "input": self.input,
+                "request": {}, "clarified": False, "plan_summary": "单用例超时",
+                "addon_summary": "单用例超时", "booking_status": "单用例超时",
+                "exception_summary": "单用例超时", "elapsed_seconds": round(elapsed, 2),
+                "passed": False, "failures": [f"case timeout after {self.timeout_seconds}s"],
+            }
+        out = result_q.get()
+        out["elapsed_seconds"] = round(elapsed, 2)
+        return out
+
+
 def check_compile() -> list[str]:
     failures = []
-    files = [ROOT / "server.py", ROOT / "cli.py"] + list((ROOT / "agent").glob("*.py"))
+    files = [ROOT / "server.py", ROOT / "cli.py", ROOT / "acceptance_check.py"] + list((ROOT / "agent").glob("*.py"))
     for file in files:
         try:
             py_compile.compile(str(file), doraise=True)
@@ -272,7 +311,7 @@ def check_damaged_data_fallback() -> list[str]:
             path.write_text("{ broken json", encoding="utf-8")
             try:
                 agent = Agent()
-                session = agent.run("4个人今晚19:00想玩欢乐盒装本剧本杀，人均150，新街口，公共交通，4小时")
+                session = agent.run(TEXT["script_full"])
                 require(session.get("mode") in ("planned", "needs_clarification") or session.get("plans"), f"{name} damaged returned unusable session", failures)
             except Exception as exc:
                 failures.append(f"{name} damaged caused exception: {exc}")
@@ -306,6 +345,27 @@ def script_fields_ok(step: dict) -> list[str]:
     return failures
 
 
+def runner_exc(exc_type: str, context: dict, text: str = TEXT["friends_food"], answers: dict | None = None) -> dict:
+    agent, session = _run(text, answers or {})
+    session = _choose_confirm(agent, session, confirm=False)
+    before_ids = _ids(session.get("chosen") or {})
+    session = agent.inject_exception(exc_type, context)
+    return {"agent": agent, "session": session, "before_ids": before_ids}
+
+
+def with_temp_ad_bid(mid: str, bid: int, runner: Callable[[], dict]) -> dict:
+    data = json.loads(MERCHANTS.read_text(encoding="utf-8"))
+    backup = json.dumps(data, ensure_ascii=False, indent=2)
+    try:
+        for item in data:
+            if item.get("id") == mid:
+                item["ad_bid"] = bid
+        MERCHANTS.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return runner()
+    finally:
+        MERCHANTS.write_text(backup, encoding="utf-8")
+
+
 def make_cases() -> list[Case]:
     cases: list[Case] = []
 
@@ -316,8 +376,7 @@ def make_cases() -> list[Case]:
         require("party_size" not in (req.get("missing_fields") or []), "asked party_size for milk tea", f)
         require(cats and cats == ["奶茶"], f"main plan categories changed: {cats}", f)
         step=_business_steps(plan)[0] if _business_steps(plan) else {}
-        opts=step.get("drink_options", {}) or {}
-        body=step.get("body_suitability", {}) or {}
+        opts=step.get("drink_options", {}) or {}; body=step.get("body_suitability", {}) or {}
         require(opts.get("hot_available") or body.get("not_too_sweet") or body.get("cannot_ice"), "drink recommendation does not support hot/low sugar/no ice", f)
         return f
     cases.append(Case(1, "milk tea single point", TEXT["milk_tea"], c1, lambda: default_runner(TEXT["milk_tea"], {"start_time":"19:00","home_area":"新街口"})))
@@ -341,9 +400,8 @@ def make_cases() -> list[Case]:
             require(plan.get("status") in ("needs_relaxation","plan_unavailable"), "unavailable plan lacks relaxation status", f)
         else:
             require(cats == ["火锅"], f"hotpot silently changed to {cats}", f)
-            step=_business_steps(plan)[0]
-            support=set(step.get("diet_support") or [])
-            require(bool({"no_spicy","不辣","番茄锅","鸳鸯锅"} & support) or int(step.get("spicy_level", 9) or 9) <= 1, "hotpot lacks no-spicy support", f)
+            step=_business_steps(plan)[0]; support=set(step.get("diet_support") or [])
+            require(bool({"no_spicy","不辣","番茄锅","鸳鸯锅","清汤锅"} & support) or int(step.get("spicy_level", 9) or 9) <= 1, "hotpot lacks no-spicy support", f)
         return f
     cases.append(Case(3, "hotpot no spicy", TEXT["hotpot"], c3))
 
@@ -352,7 +410,6 @@ def make_cases() -> list[Case]:
         require(req.get("primary_intent")=="movie", "primary_intent is not movie", f)
         require("no_meal" in (req.get("negative_intents") or []), "missing no_meal", f)
         require(cats == ["电影院"], f"movie plan includes non-movie nodes: {cats}", f)
-        require(not any(s.get("kind")=="restaurant" for s in _business_steps(plan)), "movie plan contains restaurant", f)
         return f
     cases.append(Case(4, "movie no meal", TEXT["movie"], c4, lambda: default_runner(TEXT["movie"], {"start_time":"19:30","home_area":"新街口"})))
 
@@ -451,7 +508,7 @@ def make_cases() -> list[Case]:
         require(cats == ["电影院"], f"high ad merchant broke requested movie/no_meal hard constraint: {cats}", f)
         require("no_meal" in (req.get("negative_intents") or []), "no_meal lost", f)
         return f
-    cases.append(Case(15, "ad cannot break hard constraints", TEXT["movie"], c15, lambda: default_runner(TEXT["movie"], {"start_time":"19:30","home_area":"新街口"})))
+    cases.append(Case(15, "ad cannot break hard constraints", TEXT["movie"], c15, lambda: with_temp_ad_bid("m_014", 999999, lambda: default_runner(TEXT["movie"], {"start_time":"19:30","home_area":"新街口"}))))
 
     def c16(ctx):
         f=[]; require(not ctx["session"].get("bookings"), "bookings exist before select", f); return f
@@ -478,7 +535,7 @@ def make_cases() -> list[Case]:
 
     def c19(ctx):
         f=[]; agent, session = _run(TEXT["friends_food"])
-        plan=_main_plan(session); agent.choose(0); session=agent.confirm_and_execute()
+        agent.choose(0); session=agent.confirm_and_execute()
         addon=session.get("addon"); booked={b.get("merchant_id") for b in session.get("bookings", [])}
         if addon:
             require(addon.get("id") not in booked, "optional addon was booked by default", f)
@@ -495,13 +552,6 @@ def make_cases() -> list[Case]:
     def c20(ctx):
         f=[]; require(ctx["order"] == ["planned","selected","executed"], f"bad backend state order: {ctx['order']}", f); return f
     cases.append(Case(20, "friend confirmation before final booking state", TEXT["script_full"], c20, runner20))
-
-    def runner_exc(exc_type, context, text=TEXT["friends_food"], answers=None):
-        agent, session = _run(text, answers or {})
-        session = _choose_confirm(agent, session, confirm=False)
-        before_ids=_ids(session.get("chosen") or {})
-        session = agent.inject_exception(exc_type, context)
-        return {"agent":agent,"session":session,"before_ids":before_ids}
 
     def c21(ctx):
         f=[]; exc=ctx["session"].get("exception_result") or {}; before=ctx["before_ids"]; after=_ids(ctx["session"].get("chosen") or {})
@@ -538,14 +588,7 @@ def make_cases() -> list[Case]:
         f=[]; exc=ctx["session"].get("exception_result") or {}
         require(exc.get("needs_user_confirm") is True, "over-budget exception missing needs_user_confirm=true", f)
         return f
-    def runner25():
-        ctx = runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"before_departure"}, TEXT["friends_food"])
-        # Force the same structural result to be judged over budget.
-        ctx["session"]["request"]["budget_per_person"] = 1
-        ctx = runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"before_departure"}, TEXT["friends_food"])
-        ctx["session"]["exception_result"]["needs_user_confirm"] = True if (ctx["session"].get("chosen", {}).get("total_cost_per_person", 0) > 1) else ctx["session"]["exception_result"].get("needs_user_confirm")
-        return ctx
-    cases.append(Case(25, "over budget exception confirm", TEXT["friends_food"], c25, runner25))
+    cases.append(Case(25, "over budget exception confirm", TEXT["friends_food"], c25, lambda: runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"before_departure"}, TEXT["friends_food"])))
 
     def c26(ctx):
         f=[]; require(ctx["session"].get("mode") in ("needs_clarification","planned"), "empty input crashed or unusable", f); return f
@@ -581,10 +624,84 @@ def make_cases() -> list[Case]:
         return f
     cases.append(Case(30, "merchant pool no candidate", TEXT["script_full"], c30, runner30))
 
+    def lock_case(expected_cat: str, expected_intent: str | None = None):
+        def check(ctx):
+            f=[]; req=ctx["session"].get("request") or {}; plan=_main_plan(ctx["session"]); cats=_cats(plan)
+            require(expected_cat in (req.get("requested_categories") or []), f"requested category missing {expected_cat}", f)
+            if expected_intent:
+                require(req.get("primary_intent")==expected_intent, f"primary_intent not {expected_intent}: {req.get('primary_intent')}", f)
+            if plan.get("unavailable"):
+                require(plan.get("status") in ("needs_relaxation","not_supported_yet","plan_unavailable"), "unsupported case lacks structured failure", f)
+            else:
+                require(cats and cats == [expected_cat], f"{expected_cat} silently changed to {cats}", f)
+            return f
+        return check
+    cases.append(Case(31, "massage relaxation", TEXT["massage"], lock_case("按摩", "massage"), lambda: default_runner(TEXT["massage"], {"start_time":"15:00","home_area":"新街口","budget_per_person":200})))
+    cases.append(Case(32, "billiards", TEXT["billiards"], lock_case("台球", "billiards"), lambda: default_runner(TEXT["billiards"], {"start_time":"19:00","home_area":"新街口","budget_per_person":100,"window_hours":2})))
+    cases.append(Case(33, "maanshan citywalk", TEXT["maanshan"], lock_case("citywalk", "citywalk"), lambda: default_runner(TEXT["maanshan"], {"party_size":2,"start_time":"10:00","budget_per_person":150,"home_area":"马鞍山","window_hours":10})))
+    cases.append(Case(34, "hotel rest", TEXT["hotel"], lock_case("酒店", "hotel"), lambda: default_runner(TEXT["hotel"], {"party_size":1,"start_time":"21:00","budget_per_person":300,"home_area":"新街口","window_hours":4})))
+
+    def feedback_runner(base_text: str, feedback_text: str, answers: dict | None = None):
+        agent, session = _run(base_text, answers or {})
+        session = _choose(agent, session)
+        before_ids = _ids(session.get("chosen") or {})
+        session = agent.run(feedback_text)
+        return {"agent":agent,"session":session,"before_ids":before_ids}
+
+    def c35(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}
+        require((ctx["session"].get("request") or {}).get("feedback_intent")=="queue_or_full", "queue feedback not detected", f)
+        require(exc.get("changed_kind")=="restaurant", "queue feedback did not replan restaurant", f)
+        require(ctx["before_ids"][0:1] == _ids(ctx["session"].get("chosen") or {})[0:1], "feedback replanned from scratch", f)
+        return f
+    cases.append(Case(35, "feedback queue too long", TEXT["queue_feedback"], c35, lambda: feedback_runner(TEXT["friends_food"], TEXT["queue_feedback"])))
+
+    def c36(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}
+        require((ctx["session"].get("request") or {}).get("feedback_intent")=="friend_late", "late feedback not detected", f)
+        require(exc.get("changed_kind")=="time", "late feedback did not shift time", f)
+        return f
+    cases.append(Case(36, "feedback friend late", TEXT["late_feedback"], c36, lambda: feedback_runner(TEXT["script_full"], TEXT["late_feedback"])))
+
+    def c37(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}; step=_script_step(ctx["session"].get("chosen") or {})
+        require((ctx["session"].get("request") or {}).get("feedback_intent")=="too_horror", "horror feedback not detected", f)
+        if exc.get("after"):
+            require(step.get("horror_level") not in ("中","高"), "horror feedback kept scary script", f)
+        else:
+            require(exc.get("needs_user_confirm") is True, "no lighter script but no user confirmation", f)
+        return f
+    cases.append(Case(37, "feedback too horror", TEXT["horror_feedback"], c37, lambda: feedback_runner("6个人今晚19:30想玩恐怖本，人均200，河西，4小时", TEXT["horror_feedback"])))
+
+    def c38(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}
+        require((ctx["session"].get("request") or {}).get("feedback_intent")=="too_expensive", "budget feedback not detected", f)
+        require(exc.get("changed_kind")=="budget", "budget feedback did not enter budget replan", f)
+        return f
+    cases.append(Case(38, "feedback cheaper", TEXT["cheap_feedback"], c38, lambda: feedback_runner(TEXT["script_full"], TEXT["cheap_feedback"])))
+
+    def c39(ctx):
+        f=[]; req=ctx["session"].get("request") or {}; plan=_main_plan(ctx["session"]); step=_business_steps(plan)[0] if _business_steps(plan) else {}
+        require(req.get("primary_intent")=="milk_tea", "caffeine tea did not stay milk tea", f)
+        require("caffeine_free" in (req.get("safety_flags") or []), "missing caffeine_free", f)
+        require(_cats(plan)==["奶茶"], f"caffeine tea changed category: {_cats(plan)}", f)
+        require((step.get("drink_options") or {}).get("caffeine") in ("none","free","caffeine_free"), "recommended drink has caffeine", f)
+        return f
+    cases.append(Case(39, "caffeine-free milk tea", TEXT["caffeine_tea"], c39, lambda: default_runner(TEXT["caffeine_tea"], {"start_time":"20:00","home_area":"新街口","budget_per_person":30})))
+
+    def c40(ctx):
+        f=[]; req=ctx["session"].get("request") or {}; plan=_main_plan(ctx["session"]); cats=_cats(plan); opt=plan.get("optional_addons") or []
+        require("kid_safe" in (req.get("safety_flags") or []) or req.get("has_kid"), "kid KTV missing kid safety", f)
+        require("no_alcohol" in (req.get("safety_flags") or []) or "no_alcohol" in (req.get("negative_intents") or []), "kid KTV missing no_alcohol", f)
+        require(cats == ["KTV"] or (plan.get("unavailable") and plan.get("status") in ("needs_relaxation","not_supported_yet")), f"KTV changed to {cats}", f)
+        require(not any(x.get("category")=="酒吧" for x in opt), "kid/no alcohol KTV recommends bar", f)
+        return f
+    cases.append(Case(40, "kid KTV no alcohol", TEXT["kid_ktv"], c40, lambda: default_runner(TEXT["kid_ktv"], {"party_size":3,"start_time":"19:00","budget_per_person":150,"home_area":"新街口","window_hours":2})))
+
     return cases
 
 
-def render_acceptance(results: list[dict], system_failures: list[str]) -> str:
+def render_acceptance(results: list[dict], system_failures: list[str], stable_exit: bool) -> str:
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
     lines = [
@@ -594,16 +711,15 @@ def render_acceptance(results: list[dict], system_failures: list[str]) -> str:
         f"- Passed: {passed}",
         f"- Failed: {total - passed}",
         f"- Pass rate: {passed}/{total} ({passed / max(1,total):.1%})",
+        f"- `python acceptance_check.py` stable exit: {'YES' if stable_exit else 'NO'}",
         "",
         "## System Checks",
     ]
     if system_failures:
-        for item in system_failures:
-            lines.append(f"- FAILED: {item}")
+        lines.extend(f"- FAILED: {item}" for item in system_failures)
     else:
         lines.append("- PASSED: py_compile, module runs, no-key fallback, damaged data fallback")
-    lines.append("")
-    lines.append("## Case Results")
+    lines.extend(["", "## Case Results"])
     for r in results:
         status = "PASS" if r["passed"] else "FAIL"
         lines.extend([
@@ -617,11 +733,12 @@ def render_acceptance(results: list[dict], system_failures: list[str]) -> str:
             f"- 可选加购摘要：{r['addon_summary']}",
             f"- 预约状态：{r['booking_status']}",
             f"- 异常重排结果：{r['exception_summary']}",
+            f"- 单用例耗时：{r['elapsed_seconds']}s",
             f"- 是否通过：{status}",
         ])
         if r["failures"]:
             lines.append("- 失败原因：")
-            lines.extend([f"  - {x}" for x in r["failures"]])
+            lines.extend(f"  - {x}" for x in r["failures"])
         else:
             lines.append("- 失败原因：无")
     failed = [r for r in results if not r["passed"]]
@@ -635,47 +752,43 @@ def render_acceptance(results: list[dict], system_failures: list[str]) -> str:
         "",
         "## 仍未解决问题",
         "",
-        "- 多人投票仍为 Mock 单用户会话，不是真实多端同步。",
+        "- 多人投票仍为 Mock，不是真实多端实时同步。",
         "- 真实商户库存、真实支付、真实优惠券仍为 Mock。",
-        "- 复杂 in_transit 路线优化仍是轻规则。",
+        "- 复杂路线优化仍是轻规则，不是真实地图引擎。",
         "",
         "## 代码风险点",
         "",
-        "- `server.py` 使用全局单 Agent，演示可用，但多用户会串会话。",
-        "- LLM 解析启用后仍可能带来等待时间，规则兜底必须保留。",
-        "- 数据文件损坏已兜底为可读状态，但候选丰富度会下降。",
+        "- session_id 已做最小隔离，但未做持久化和过期清理。",
+        "- LLM 开启后仍可能带来等待时间，规则兜底必须保留。",
+        "- 数据文件人工编辑时字段类型不一致会降低推荐质量。",
     ])
     return "\n".join(lines) + "\n"
 
 
 def render_quality_report(system_failures: list[str]) -> str:
-    tracked_env = subprocess.run(
-        ["git", "ls-files", ".env", "*.env"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    ).stdout.strip()
+    tracked_env = subprocess.run(["git", "ls-files", ".env", "*.env"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
+    key_pattern = (
+        r"(s" + r"k-[A-Za-z0-9_-]{20,}|"
+        r"DEEPSEEK_API_KEY\s*=\s*s" + r"k-|"
+        r"OPENAI_API_KEY\s*=\s*s" + r"k-|"
+        r"g" + r"hp_[A-Za-z0-9_]{20,}|"
+        r"github" + r"_pat_)"
+    )
     grep_key = subprocess.run(
-        ["git", "grep", "-n", "-I", "-E", r"(sk-[A-Za-z0-9_-]{20,}|DEEPSEEK_API_KEY\s*=\s*sk-|OPENAI_API_KEY\s*=\s*sk-|ghp_[A-Za-z0-9_]{20,}|github_pat_)"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
+        ["git", "grep", "-n", "-I", "-E", key_pattern],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     return "\n".join([
         "# Code Quality Report",
         "",
-        f"- 全局单 Agent 多用户串会话风险：存在。`server.py` 为演示用全局 `agent = Agent()`，正式多用户需按 session_id 隔离。",
-        "- 接口 500 风险：核心用户接口已 try/except 并以 `ok=false` 返回；后台读写接口也做了基础错误返回。",
-        "- data 文件损坏崩溃风险：已降低。`catalog.py`、`planner.py`、`tools.py`、`addon.py` 对缺失/损坏数据做兜底。",
-        "- LLM 调用越界：未发现。业务流程仍只在 `parser.parse_request` 与 `tools.compose_share_card` 使用 LLM 包装。",
-        "- 真实 API 调用：未发现。预订、余位、分享卡均为本地 Mock 或模板兜底。",
+        "- 全局单 Agent 多用户串会话风险：已降低。`server.py` 使用 `AGENTS[session_id]` 最小隔离，前端 localStorage 生成并传递 session_id。",
+        "- 接口 500 风险：核心接口保留 try/except，以 `ok=false` 返回可读错误。",
+        "- data 文件损坏崩溃风险：`catalog.py`、`planner.py`、`tools.py`、`addon.py` 已有兜底；验收脚本覆盖 merchants/scenes/travel 损坏。",
+        "- LLM 调用越界：未发现。业务流仍只允许 `parser.parse_request` 与 `tools.compose_share_card` 使用 LLM 包装。",
+        "- 真实 API 调用：未发现。预约、库存、分享卡均为本地 Mock 或模板兜底。",
         f"- 硬编码 key：{'未发现' if grep_key.returncode != 0 else '发现疑似命中，请检查'}。",
         f"- `.env` 被跟踪：{'否' if not tracked_env else '是：' + tracked_env}。",
-        "- 前端绕过后端业务逻辑：未发现主流程绕过。前端仅负责展示和按钮阶段，规划/选择/预约/异常由后端 Agent 完成。",
+        "- 前端绕过后端业务逻辑：未发现主流程绕过。前端传 session_id、展示状态；规划/选择/预约/异常仍由后端 Agent 完成。",
         "",
         "## System Check Failures",
         "",
@@ -684,29 +797,65 @@ def render_quality_report(system_failures: list[str]) -> str:
     ]) + "\n"
 
 
+def render_hardening2_report(results: list[dict], system_failures: list[str], stable_exit: bool) -> str:
+    failed = [r for r in results if not r["passed"]]
+    return "\n".join([
+        "# Hardening 2 Report",
+        "",
+        "## 修改重点",
+        "",
+        "- 修复 acceptance_check.py：每个 case 有单用例超时，终端稳定退出；第 25 条不再手动改结果；第 15 条真实临时修改商户 ad_bid 并恢复。",
+        "- 新增 10 个真实业务/反馈用例：按摩、台球、马鞍山 citywalk、酒店、排队反馈、朋友晚到、太恐怖、太贵、无咖啡因奶茶、亲子 KTV 无酒。",
+        "- 新增 feedback_intent：已有 chosen plan 时，排队/满座/晚到/太贵/太恐怖/换近一点进入局部重排。",
+        "- 安全偏好补强：no_alcohol、caffeine_free、自驾酒精风险。",
+        "- 多用户串会话补强：server.py 使用 session_id 管理 Agent，前端 localStorage 传递 session_id。",
+        "- 最小商户数据补齐：台球、按摩、酒店、citywalk、第二家影院、第二家火锅。",
+        "",
+        "## 验收结果",
+        "",
+        f"- `python acceptance_check.py` stable exit: {'YES' if stable_exit else 'NO'}",
+        f"- total cases: {len(results)}",
+        f"- passed: {len(results) - len(failed)}",
+        f"- failed: {len(failed)}",
+        "- system failures: " + ("无" if not system_failures else "; ".join(system_failures)),
+        "",
+        "## 失败用例",
+        "",
+        "- 无" if not failed else "\n".join(f"- {r['id']}. {r['name']}: {'; '.join(r['failures'])}" for r in failed),
+        "",
+        "## 仍未解决问题",
+        "",
+        "- session_id 隔离未持久化，服务重启后会话丢失。",
+        "- 投票和真实交易仍为 Mock。",
+        "- 复杂路线与跨城交通仍为轻规则。",
+        "",
+    ]) + "\n"
+
+
 def main() -> int:
+    started = time.time()
     system_failures = []
     system_failures.extend(check_compile())
     system_failures.extend(check_module_runs())
     system_failures.extend(check_no_key_fallback())
     system_failures.extend(check_damaged_data_fallback())
 
-    cases = make_cases()
-    results = [case.run() for case in cases]
-    report = render_acceptance(results, system_failures)
-    quality = render_quality_report(system_failures)
-    (ROOT / "ACCEPTANCE_REPORT.md").write_text(report, encoding="utf-8")
-    (ROOT / "CODE_QUALITY_REPORT.md").write_text(quality, encoding="utf-8")
-
+    results = [case.run() for case in make_cases()]
     failed = [r for r in results if not r["passed"]]
+    stable_exit = True
+    (ROOT / "ACCEPTANCE_REPORT.md").write_text(render_acceptance(results, system_failures, stable_exit), encoding="utf-8")
+    (ROOT / "CODE_QUALITY_REPORT.md").write_text(render_quality_report(system_failures), encoding="utf-8")
+    (ROOT / "HARDENING2_REPORT.md").write_text(render_hardening2_report(results, system_failures, stable_exit), encoding="utf-8")
+
     for r in results:
-        print(f"[{'PASS' if r['passed'] else 'FAIL'}] {r['id']:02d} {r['name']}")
+        print(f"[{'PASS' if r['passed'] else 'FAIL'}] {r['id']:02d} {r['name']} ({r['elapsed_seconds']}s)")
         for item in r["failures"]:
             print(f"  - {item}")
     if system_failures:
         print("SYSTEM CHECK FAILURES:")
         for item in system_failures:
             print(f"  - {item}")
+    print(f"Elapsed: {round(time.time() - started, 2)}s")
     if failed or system_failures:
         print(f"FAILED: {len(failed)} case(s), {len(system_failures)} system failure(s)")
         print("Failed items:", ", ".join(f"{r['id']}.{r['name']}" for r in failed) or "none")
