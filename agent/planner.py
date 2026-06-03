@@ -377,6 +377,10 @@ def build_itinerary(request: dict, logbook=None) -> list[dict]:
                 "script_styles": merchant.get("script_styles", []),
                 "player_counts": merchant.get("player_counts", []),
                 "open_tables": merchant.get("open_tables", []),
+                "difficulty": merchant.get("difficulty"),
+                "horror_level": merchant.get("horror_level"),
+                "newbie_friendly": merchant.get("newbie_friendly"),
+                "dm_rating": merchant.get("dm_rating"),
                 "slot_role": role,
                 "slot_title": slot.get("title", ""),
             }
@@ -653,6 +657,10 @@ def _replan_one_node(chosen: dict, request: dict, steps: list, kind: str, contex
         "script_styles": new_m.get("script_styles", []),
         "player_counts": new_m.get("player_counts", []),
         "open_tables": new_m.get("open_tables", []),
+        "difficulty": new_m.get("difficulty"),
+        "horror_level": new_m.get("horror_level"),
+        "newbie_friendly": new_m.get("newbie_friendly"),
+        "dm_rating": new_m.get("dm_rating"),
         "script_status": _match_script_table(new_m, request) if new_m.get("category") == "剧本杀" else None,
     }
 
@@ -742,16 +750,29 @@ def _replan_time(chosen: dict, request: dict, steps: list, logbook=None) -> dict
 # ═══════════════════════════════════════════════════════════════════════════
 def _make_title(steps: list, scene: str, plan_idx: int) -> str:
     cat = ""
+    script_step = None
     for s in steps:
         if s.get("kind") in ("activity", "stayin", "restaurant", "addon"):
             cat = s.get("category", "")
+            if cat == "剧本杀":
+                script_step = s
             break
+    if script_step:
+        status = script_step.get("script_status") or {}
+        style = status.get("style") or (script_step.get("script_styles") or [""])[0]
+        players = status.get("required_players") or (script_step.get("player_counts") or [""])[0]
+        can_start = status.get("can_start_if_join") or status.get("can_fill_after_join")
+        if "欢乐" in str(style):
+            return "欢乐盒装本 · 今晚可成局" if plan_idx == 0 else f"{players or 4}人欢乐本推荐"
+        if can_start:
+            return f"{players or ''}人剧本杀 · 加入后可成局".strip()
+        return f"{style or '剧本杀'} · 正在拼场" if plan_idx == 0 else "剧本杀备选场"
     titles = {
         "展览":   ["拍照轻松局", "看展放松局"],
         "市集":   ["市集闲逛局", "免费溜达局"],
         "手作":   ["手作慢享局", "亲手做点东西"],
         "电影院": ["影院休闲局", "看场电影局"],
-        "剧本杀": ["烧脑剧本局", "沉浸剧场局"],
+        "剧本杀": ["剧本杀成局推荐", "剧本杀备选场"],
         "密室":   ["密室挑战局", "团队解谜局"],
         "桌游":   ["桌游聚会局", "随便玩玩局"],
         "KTV":    ["欢唱聚会局", "麦霸开嗓局"],

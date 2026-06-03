@@ -1,5 +1,54 @@
 # Change Summary
 
+## Sprint 2: Demo UI and Flow Polish
+
+### 修改文件列表
+
+- `web/app.html`
+- `agent/planner.py`
+- `README.md`
+- `SPRINT2_REPORT.md`
+- `CHANGE_SUMMARY.md`
+
+### 每个文件改了什么
+
+- `web/app.html`：重构用户端演示文案和状态顺序；去掉手机端工程广告语；解析卡改为“本次目标”；追问卡修复挤压并固定手机时间为 `13:00`；候选方案、朋友确认、最终预约、账单分享、现场补救分阶段展示；右侧默认只显示当前摘要，日志折叠到评委模式。
+- `agent/planner.py`：给剧本杀步骤补充 `difficulty`、`horror_level`、`newbie_friendly`、`dm_rating` 等展示字段；剧本杀标题按拼场和剧本类型动态生成，欢乐本优先显示“欢乐盒装本 · 今晚可成局”。
+- `README.md`：同步 `/select` 和最终预约流程；演示路径改为“输入 → 追问 → 出方案 → 选方案 → 投票/跳过 → 最终预约 → 账单/分享 → 异常补救”；删除“项目里已附 .env”安全误导。
+- `SPRINT2_REPORT.md`：记录 Sprint 2 修改、状态流、4 个验收场景、截图路径和剩余风险。
+- `CHANGE_SUMMARY.md`：追加 Sprint 2 总结。
+
+### 4 个验收场景结果
+
+1. `4人欢乐盒装本剧本杀`：通过。主方案命中剧本杀，标题为“欢乐盒装本 · 今晚可成局”，展示拼场/DM/新手友好字段。
+2. `今天晚上看电影，不想吃饭`：通过。主方案只含电影院，不出现餐厅。
+3. `奶茶不要太甜不能喝冰`：通过。走 ADDON 单点奶茶，识别不能冰和不要太甜，不问人数。
+4. `预约后现场情况变化`：通过。预约完成后只显示账单/分享，异常补救作为“现场情况变了”出现。
+
+### 截图路径
+
+- `output/sprint2/sprint2_01_script_clarify.png`
+- `output/sprint2/sprint2_02_script_plan.png`
+- `output/sprint2/sprint2_03_friend_confirm_before_booking.png`
+- `output/sprint2/sprint2_04_booking_complete_bill_share.png`
+- `output/sprint2/sprint2_05_post_booking_rescue.png`
+
+### 仍未解决的问题
+
+- 朋友投票仍是 Mock 单端流程，不是真实多人实时同步。
+- 预约前朋友反馈的局部修改仍复用异常重排结果展示。
+- 真实拼场、真实库存、真实交易接口仍为 Mock 数据演示。
+
+### 最可能出 bug 的 5 个地方
+
+1. DeepSeek 返回慢或输出异常时，前端等待时间可能变长。
+2. 浏览器/终端中文编码会影响自动化脚本输入。
+3. 快速连续点击阶段按钮可能造成重复状态更新。
+4. 剧本杀字段缺失时只能展示“待确认/暂无”。
+5. 复杂位置状态下的异常重排仍是轻规则。
+
+---
+
 ## 修改文件列表
 
 - `.gitignore`

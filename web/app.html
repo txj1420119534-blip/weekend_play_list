@@ -237,9 +237,10 @@ button{font-family:inherit}
   background:var(--warn-bg);border-radius:8px;padding:10px 12px;
   font-size:12.5px;color:#7A4F0A;line-height:1.55;margin:6px 0 12px;
   display:flex;gap:8px;align-items:flex-start;
+  min-width:0;word-break:normal;overflow-wrap:anywhere;
 }
 .clarify-note::before{content:"💡";font-size:14px;flex:none}
-.clarify-note b{color:var(--ink);font-weight:700}
+.clarify-note b{color:var(--ink);font-weight:700;white-space:normal}
 .clarify-q{margin-bottom:14px}
 .clarify-q:last-child{margin-bottom:8px}
 .clarify-q .ql{
@@ -258,6 +259,13 @@ button{font-family:inherit}
   border-color:var(--mt-yellow-deep);background:var(--mt-yellow);
   color:var(--ink);font-weight:700;
 }
+.script-details{
+  margin-top:8px;padding:8px 10px;border-radius:9px;background:#FFFCEC;
+  border:1px solid var(--mt-yellow-bar);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px 8px;font-size:11.5px;color:var(--ink-3);
+}
+.script-details span{min-width:0;white-space:normal}
+.script-details b{color:var(--ink);font-weight:700}
 .parse-grid{
   display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:8px;
 }
@@ -651,7 +659,7 @@ button{font-family:inherit}
           </div>
           <div class="mt-search">
             <span class="mt-search-icon">🔍</span>
-            <input id="goalInput" placeholder="说一句话，AI 帮你安排周末" />
+            <input id="goalInput" placeholder="你想安排什么？" />
             <button class="mt-search-btn" onclick="startPlanning()">安排</button>
           </div>
         </div>
@@ -676,11 +684,11 @@ button{font-family:inherit}
           <!-- 2. Banner：周末搞定入口 -->
           <div class="banner" id="bannerEntry" onclick="focusInput()">
             <div class="banner-l">
-              <div class="banner-eyebrow">AI 一句话规划</div>
-              <div class="banner-title"><em>周末搞定</em>·把这场局安排到能出门</div>
-              <div class="banner-sub">理解 → 检索 → 排期 → 订座 → 异常补救</div>
+              <div class="banner-eyebrow">周末搞定</div>
+              <div class="banner-title">说一句，我帮你把这场局安排到能出门。</div>
+              <div class="banner-sub">少一点群里拉扯，多一点真能出发的安排</div>
             </div>
-            <div class="banner-cta">立即体验</div>
+            <div class="banner-cta">开始安排</div>
             <div class="banner-mascot">🐹</div>
           </div>
 
@@ -688,25 +696,25 @@ button{font-family:inherit}
           <div class="input-card" id="inputCard">
             <div class="input-card-head">
               <div class="dot">1</div>
-              <div class="h">说一句话</div>
-              <div class="s">AI 帮你听懂</div>
+              <div class="h">你想安排什么？</div>
+              <div class="s">一句话就行</div>
             </div>
-            <textarea class="input-area" id="goalArea" placeholder="例如：今天下午和朋友4个人出去玩，想拍照吃饭不要太累，人均150，晚上别排队"></textarea>
+            <textarea class="input-area" id="goalArea" placeholder="例如：4个朋友今晚想玩欢乐盒装本剧本杀，人均150，新街口，公共交通"></textarea>
             <div class="chips">
-              <span class="chip" onclick="useExample(0)">🎏 朋友4人局</span>
-              <span class="chip" onclick="useExample(1)">👶 亲子局</span>
-              <span class="chip" onclick="useExample(2)">🛋 宅家局</span>
-              <span class="chip" onclick="useExample(3)">💕 情侣约会</span>
+              <span class="chip" onclick="useExample(0)">🎏 4人想打本</span>
+              <span class="chip" onclick="useExample(1)">🎬 今晚看电影</span>
+              <span class="chip" onclick="useExample(2)">🛋 宅家点外卖</span>
+              <span class="chip" onclick="useExample(3)">🎂 生日聚会</span>
             </div>
-            <button class="btn-primary" id="btnGo" onclick="startPlanning()">帮我安排 →</button>
+            <button class="btn-primary" id="btnGo" onclick="startPlanning()">帮我安排</button>
           </div>
 
           <!-- 4. 解析卡 -->
           <div class="parse-card reveal hidden" id="parseCard">
             <div class="card-h">
               <div class="num">2</div>
-              <div class="t">我听懂了</div>
-              <div class="s">结构化需求</div>
+              <div class="t">本次目标</div>
+              <div class="s">只展示有效信息</div>
             </div>
             <div class="parse-grid" id="parseGrid"></div>
           </div>
@@ -720,7 +728,7 @@ button{font-family:inherit}
             </div>
             <div class="clarify-note" id="clarifyNote"></div>
             <div id="clarifyForm"></div>
-            <button class="btn-primary" id="btnRefine" onclick="submitClarify()">补充完了，去规划 →</button>
+            <button class="btn-primary" id="btnRefine" onclick="submitClarify()">确认，开始找店</button>
           </div>
 
           <!-- 5. 方案区 -->
@@ -750,10 +758,10 @@ button{font-family:inherit}
           <div class="share-card reveal hidden" id="friendFeedbackCard">
             <div class="card-h">
               <div class="num">5</div>
-              <div class="t">好友反馈</div>
-              <div class="s">点击后局部重排</div>
+              <div class="t">朋友确认</div>
+              <div class="s">预约前反馈</div>
             </div>
-            <div class="share-text">方案发出后，朋友可能会补一句约束。这里用模拟群聊把“协同确认及反馈闭环”跑出来。</div>
+            <div class="share-text">先把候选方案发给朋友确认。有人觉得时间不合适时，先局部调整，再由发起人最终预约。</div>
             <div class="friend-feedback" id="friendFeedbackList"></div>
           </div>
 
@@ -764,7 +772,7 @@ button{font-family:inherit}
               <div class="t">现场情况变了</div>
               <div class="s">半路救援 · 局部重排</div>
             </div>
-            <div class="rescue-note" id="rescueNote">朋友临时反馈、到店发现满座、票卖完、时间太赶，都不需要推翻整条行程。系统只替换坏掉的那一环，保留其它已确认节点。</div>
+            <div class="rescue-note" id="rescueNote">预约完成后，如果现场发现满座、票卖完、时间赶不上，不需要推翻整条行程。系统只替换坏掉的那一环，保留其它已确认节点。</div>
             <div id="excResultWrap"></div>
             <div class="exc-btns" id="excBtns"></div>
           </div>
@@ -785,13 +793,13 @@ button{font-family:inherit}
     </div><!-- /.phone -->
   </div>
 
-  <!-- ═════════ 右栏：实时日志 + agent 行为解释 ═════════ -->
+  <!-- ═════════ 右栏：当前方案摘要 + 可展开日志 ═════════ -->
 <aside class="side">
 
     <div class="side-card">
       <div class="side-eyebrow">当前 · NEXT</div>
       <div class="side-title">当前方案摘要</div>
-      <div class="side-sub" id="sideNext">先在左侧说出你的需求，我会把主任务和可选推荐分开处理。</div>
+      <div class="side-sub" id="sideNext">先说出你想安排什么，我会先确认关键条件，再给可落地方案。</div>
       <div class="expl" id="sideSummary">
         <div class="expl-row"><span class="expl-num">1</span><div><b>下一步</b>：等待输入。</div></div>
       </div>
@@ -812,8 +820,7 @@ button{font-family:inherit}
 </div>
 
 <div class="foot">
-  本演示运行在 FastAPI 服务上，业务逻辑全部在 <code>agent/</code>，前端是单文件原生 HTML（不用构建工具）。
-  数据为 Mock，永不调用真实美团接口。LLM 只在 <code>parse_request</code> 与 <code>compose_share_card</code> 两处出场。
+  本地 Mock 演示 · 不连接真实交易接口。
 </div>
 
 <script>
@@ -825,9 +832,9 @@ const STATE = {session:null, busy:false, lastDiff:null, finalConfirmed:false, se
 
 const EXAMPLES = [
   "今天下午我想去玩个剧本杀，我这边有四个朋友，人均100块钱左右，玩个欢乐盒装本就可以",
-  "我好困，不想动，但是又菜又爱玩，人均80",
-  "今天下午两点想和朋友出去逛逛街，吃个饭，你有什么推荐吗",
-  "今天下午想带5岁的孩子和老婆出去玩几个小时，老婆在减肥要清淡点，别离家太远",
+  "今天晚上想看电影，不想吃饭",
+  "我今天不想出门，就想宅家看点东西，点点吃的",
+  "朋友生日，4个人，预算300一人，想有点仪式感",
 ];
 
 const PREF_NAME = {
@@ -919,11 +926,9 @@ function streamLogs(logs, startIdx, done){
 /* ===== 解析卡 ===== */
 function renderParse(req, explicit_categories){
   const want = (req.preferences||[]).map(p=>`<span class="t">${PREF_NAME[p]||p}</span>`).join("");
-  const avoid = (req.hard_limits||[]).length
-    ? (req.hard_limits||[]).map(a=>`<span class="t avoid">${HL_NAME[a]||a}</span>`).join("")
-    : `<span class="t avoid">无明确避免</span>`;
+  const avoid = (req.hard_limits||[]).map(a=>`<span class="t avoid">${HL_NAME[a]||a}</span>`).join("");
   const catChips = (explicit_categories||[]).length
-    ? (explicit_categories||[]).map(c=>`<span class="t" style="background:#FFE680;color:#5A4200">🎯 ${c.category}</span>`).join("")
+    ? (explicit_categories||[]).map(c=>`<span class="t" style="background:#FFE680;color:#5A4200">${c.category}</span>`).join("")
     : "";
   const safety = (req.safety_flags||[]).length
     ? (req.safety_flags||[]).map(x=>`<span class="t avoid">${{
@@ -935,18 +940,20 @@ function renderParse(req, explicit_categories){
       party_size:"人数", start_time:"时间", budget_per_person:"预算", script_style:"剧本类型", window_hours:"可用时长", home_area:"出发区域", distance_tolerance:"距离偏好"
     }[x]||x}</span>`).join("")
     : `<span class="t">信息已够生成方案</span>`;
-  document.getElementById("parseGrid").innerHTML = `
-    <div class="parse-row full"><div class="parse-k">我理解你的目标</div><div class="parse-v">${req.goal_summary || "帮你把这次安排落地"}</div></div>
-    <div class="parse-row"><div class="parse-k">人数</div><div class="parse-v">${req.party_size} 人</div></div>
-    <div class="parse-row"><div class="parse-k">出发</div><div class="parse-v">${req.start_time} · ${req.window_hours} 小时</div></div>
-    <div class="parse-row"><div class="parse-k">人均预算</div><div class="parse-v" style="color:var(--price)">¥${req.budget_per_person}</div></div>
-    ${catChips ? `<div class="parse-row full"><div class="parse-k">点名要</div><div class="tags">${catChips}</div></div>` : ""}
-    <div class="parse-row full"><div class="parse-k">想要</div><div class="tags">${want}</div></div>
-    <div class="parse-row full"><div class="parse-k">避免</div><div class="tags">${avoid}${safety}</div></div>
-    <div class="parse-row full"><div class="parse-k">还需要确认</div><div class="tags">${missing}</div></div>`;
+  const rows = [
+    `<div class="parse-row full"><div class="parse-k">目标</div><div class="parse-v">${req.goal_summary || "帮你把这次安排落地"}</div></div>`,
+    `<div class="parse-row"><div class="parse-k">人数</div><div class="parse-v">${req.party_size} 人</div></div>`,
+    `<div class="parse-row"><div class="parse-k">时间</div><div class="parse-v">${req.start_time} · ${req.window_hours} 小时</div></div>`,
+    `<div class="parse-row"><div class="parse-k">预算</div><div class="parse-v" style="color:var(--price)">¥${req.budget_per_person}/人</div></div>`,
+  ];
+  if(catChips) rows.push(`<div class="parse-row full"><div class="parse-k">你提到</div><div class="tags">${catChips}</div></div>`);
+  if(want) rows.push(`<div class="parse-row full"><div class="parse-k">偏好</div><div class="tags">${want}</div></div>`);
+  if(avoid || safety) rows.push(`<div class="parse-row full"><div class="parse-k">避开项</div><div class="tags">${avoid}${safety}</div></div>`);
+  rows.push(`<div class="parse-row full"><div class="parse-k">还差这些信息</div><div class="tags">${missing}</div></div>`);
+  document.getElementById("parseGrid").innerHTML = rows.join("");
   updateSideStatus("已理解目标，下一步确认缺失信息或选择方案。", [
-    {title:"目标", body:req.goal_summary || "周末安排"},
-    {title:"已记住", body:`${catChips ? (explicit_categories||[]).map(c=>c.category).join("、") : "未点名品类"} · ¥${req.budget_per_person}/人`},
+    {title:"当前目标", body:req.goal_summary || "周末安排"},
+    {title:"已确认条件", body:`${catChips ? (explicit_categories||[]).map(c=>c.category).join("、") : "未点名品类"} · ¥${req.budget_per_person}/人`},
     {title:"下一步", body:(req.missing_fields||[]).length ? "先补齐关键信息" : "选择一个候选方案"}
   ]);
 }
@@ -955,10 +962,17 @@ function renderParse(req, explicit_categories){
 const CLARIFY_ANSWERS = {};   // 用户选择缓存
 function renderClarify(clarList, explicitCats, rawText){
   CLARIFY_ANSWERS_RESET();
-  const catStr = (explicitCats||[]).map(c=>c.category).join("、");
-  const noteHtml = catStr
-    ? `已记住你想<b>「${catStr}」</b>。但还差几个关键信息，我先确认一下，不然规划出来怕不合心意：`
-    : `你说的「${rawText||''}」信息有点少，我先确认几件事，不然规划出来怕不合心意：`;
+  const req = STATE.session?.request || {};
+  const missing = new Set(req.missing_fields || []);
+  const remembered = [];
+  (explicitCats||[]).forEach(c=>remembered.push(c.category));
+  if(req.script_style && req.script_style !== "不限") remembered.push(req.script_style);
+  if(req.party_size && !missing.has("party_size")) remembered.push(`${req.party_size}人`);
+  if(req.budget_per_person && !missing.has("budget_per_person")) remembered.push(`¥${req.budget_per_person}/人`);
+  if(req.start_time && !missing.has("start_time")) remembered.push(req.start_time);
+  const noteHtml = remembered.length
+    ? `已记住：<b>${remembered.join("、")}</b>。还差 ${clarList.length} 个信息，我确认一下，避免排出来不合适。`
+    : `你说的「${rawText||''}」信息有点少。我确认 ${clarList.length} 个信息，避免排出来不合适。`;
   document.getElementById("clarifyNote").innerHTML = noteHtml;
 
   const html = (clarList||[]).map((c, qi)=>{
@@ -1000,7 +1014,7 @@ async function submitClarify(){
   const beforeLen = (STATE.session?.logs || []).length;
   const res = await post("/refine", {answers: CLARIFY_ANSWERS});
   if(!res.ok){
-    btn.disabled = false; btn.textContent = "补充完了，去规划 →";
+    btn.disabled = false; btn.textContent = "确认，开始找店";
     alert("失败：" + (res.error||"未知")); return;
   }
   STATE.session = res.session;
@@ -1015,7 +1029,7 @@ async function submitClarify(){
     wrap.innerHTML = (res.session.plans||[]).map((p,i)=>planCardHTML(p,i)).join("");
     show("plansWrap");
 
-    btn.disabled = false; btn.textContent = "补充完了，去规划 →";
+    btn.disabled = false; btn.textContent = "确认，开始找店";
     const sc = document.getElementById("scroller");
     sc.scrollTo({top:document.getElementById("plansWrap").offsetTop - 8, behavior:"smooth"});
   });
@@ -1025,6 +1039,33 @@ async function submitClarify(){
 function ringHTML(score){
   return `<div class="score-ring" style="--p:${score}">
     <div class="score-ring-in"><div class="score-num">${score}</div><div class="score-lbl">综合分</div></div>
+  </div>`;
+}
+
+function yesNo(v){ return v ? "是" : "否"; }
+function scriptDetailsHTML(s){
+  if(s.category !== "剧本杀") return "";
+  const st = s.script_status || {};
+  const tableName = st.name || st.script_name || "待店家同步";
+  const style = st.style || (s.script_styles||[])[0] || "不限";
+  const players = st.required_players || (s.player_counts||[])[0] || "";
+  const current = st.current_players;
+  const need = st.need_players;
+  const canStart = st.can_start_if_join || st.can_fill_after_join;
+  const duration = st.duration_minutes || s.duration_minutes || "";
+  const status = st.state_label || (canStart ? "加入后可成局" : "正在拼场");
+  const start = st.start ? `可预约 ${st.start} 场` : status;
+  return `<div class="script-details">
+    <span><b>本名</b>：${tableName}</span>
+    <span><b>类型</b>：${style}</span>
+    <span><b>人数</b>：${players ? `${players}人` : "待确认"}</span>
+    <span><b>拼场</b>：${current != null ? `${current}/${players || "?"}，缺${need ?? "?"}人` : status}</span>
+    <span><b>成局</b>：${canStart ? "加入后可成局" : status}</span>
+    <span><b>DM评分</b>：${s.dm_rating || "暂无"}</span>
+    <span><b>新手友好</b>：${yesNo(s.newbie_friendly)}</span>
+    <span><b>恐怖度</b>：${s.horror_level ?? "低"}</span>
+    <span><b>时长</b>：${duration ? `${Math.round(duration/60*10)/10}h` : "待确认"}</span>
+    <span><b>场次</b>：${start}</span>
   </div>`;
 }
 
@@ -1065,6 +1106,10 @@ function tlNodeHTML(s, opts){
   if(s.queue_minutes > 0){
     if(s.kind === "restaurant") waitText = `排队约 ${s.queue_minutes} 分钟`;
     else if(s.kind === "activity" && s.category === "电影院") waitText = `出票/入场约 ${s.queue_minutes} 分钟`;
+    else if(s.kind === "activity" && s.category === "剧本杀"){
+      const st = s.script_status || {};
+      waitText = st.can_start_if_join || st.can_fill_after_join ? "加入后可成局" : (st.start ? `可预约 ${st.start} 场` : "正在拼场");
+    }
     else waitText = `等候约 ${s.queue_minutes} 分钟`;
   }
   const meta = s.kind === "stayin"
@@ -1079,6 +1124,7 @@ function tlNodeHTML(s, opts){
         <div class="tl-name">${s.name} ${promo} ${replaceBadge}</div>
         <div class="tl-meta">${meta}</div>
         ${tags ? `<div class="tl-tags">${tags}</div>` : ""}
+        ${scriptDetailsHTML(s)}
         ${deal}
         ${wasLine}
       </div>
@@ -1159,7 +1205,7 @@ function confirmedCardHTML(plan, diff, finalized){
       : `<button class="btn-confirm" onclick="finalizeAdjustedPlan()">确认调整后方案</button>`)
     : `<span class="locked-badge">✓ 已模拟预订</span>`;
   return `<div class="plan locked">
-    <div class="plan-rank">已确认</div>
+    <div class="plan-rank">${diff ? "局部调整" : "预约完成"}</div>
     <div class="plan-head">
       <div>
         <div class="plan-title">${plan.title}</div>
@@ -1262,7 +1308,7 @@ function renderVoteCard(voteRoom){
   card.innerHTML = `
     <div class="card-h">
       <div class="num">投</div>
-      <div class="t">朋友投票</div>
+      <div class="t">发给朋友确认</div>
       <div class="s">${voteRoom.deadline_minutes || 20} 分钟内</div>
     </div>
     <div class="share-text">多人局已生成投票链接：\n${voteRoom.link}\n朋友投完后，当前领先方案会回到发起人这里确认。</div>
@@ -1274,7 +1320,7 @@ function renderVoteCard(voteRoom){
       <button class="btn-secondary" onclick="navigator.clipboard && navigator.clipboard.writeText('${voteRoom.link}')">复制链接</button>
       <button class="btn-secondary" onclick="refreshVote('${voteRoom.room_id}')">刷新票数</button>
       <button class="btn-secondary" onclick="simulateVote('${voteRoom.room_id}')">模拟朋友投票</button>
-      <button class="btn-confirm" ${confirmDisabled} onclick="confirmWinner('${voteRoom.room_id}')">确认领先方案</button>
+      <button class="btn-confirm" ${confirmDisabled} onclick="confirmWinner('${voteRoom.room_id}')">选定领先方案</button>
     </div>`;
   show("voteCard");
 }
@@ -1316,7 +1362,7 @@ async function confirmWinner(roomId){
     alert("还没有朋友投票，先发给朋友确认一下。");
     return;
   }
-  await selectPlan(Number(winner.index));
+  await selectPlan(Number(winner.index), true);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1379,8 +1425,8 @@ function renderRescueOptions(){
   const note = document.getElementById("rescueNote");
   if(note){
     note.textContent = movieOnly
-      ? "朋友临时反馈、电影票售罄、场次变化、时间太赶，都不需要推翻整条行程。系统只替换场次或顺延时间，保留其它已确认节点。"
-      : "朋友临时反馈、到店发现满座、票卖完、时间太赶，都不需要推翻整条行程。系统只替换坏掉的那一环，保留其它已确认节点。";
+      ? "预约完成后，如果电影票售罄、场次变化、时间赶不上，不需要推翻整条行程。系统只替换场次或顺延时间，保留其它已确认节点。"
+      : "预约完成后，如果到店发现满座、票卖完、时间赶不上，不需要推翻整条行程。系统只替换坏掉的那一环，保留其它已确认节点。";
   }
   const buttons = [];
   if(hasRestaurant){
@@ -1395,7 +1441,7 @@ function renderRescueOptions(){
   </button>`);
   buttons.push(`<button class="exc-btn" id="btn-exc-time" onclick="triggerExc('time_conflict')">
     <span class="exc-emoji">⏰</span>
-    <div class="exc-l"><div class="exc-t">朋友说时间太赶</div><div class="exc-d">整条行程顺延 1 小时</div></div>
+    <div class="exc-l"><div class="exc-t">现场发现时间赶不上</div><div class="exc-d">整条行程顺延 1 小时</div></div>
   </button>`);
   document.getElementById("excBtns").innerHTML = buttons.join("");
 }
@@ -1431,7 +1477,7 @@ async function startPlanning(){
   const res = await post("/plan", {text});
   if(!res.ok){
     btn.disabled = false;
-    btn.textContent = "重新规划 →";
+    btn.textContent = "重新规划";
     alert("规划失败：" + (res.error||"未知错误") + "\n（服务可能未启动，请运行 python server.py）");
     STATE.busy = false;
     return;
@@ -1465,12 +1511,12 @@ async function startPlanning(){
     }
 
     btn.disabled = false;
-    btn.textContent = "重新规划 →";
+    btn.textContent = "重新规划";
     STATE.busy = false;
   });
 }
 
-async function selectPlan(idx){
+async function selectPlan(idx, readyToBook){
   if(STATE.busy) return;
   STATE.busy = true;
   STATE.lastDiff = null;
@@ -1491,11 +1537,11 @@ async function selectPlan(idx){
 
   streamLogs(res.session.logs, beforeLen, ()=>{
     document.getElementById("confirmedWrap").innerHTML =
-      selectedCardHTML(res.session.chosen);
+      selectedCardHTML(res.session.chosen, !!readyToBook);
     show("confirmedWrap");
-    updateSideStatus("已选中候选方案，下一步决定是否让朋友投票。", [
+    updateSideStatus(readyToBook ? "朋友确认已完成，发起人可以最终确认预约。" : "已选中候选方案，下一步先做朋友确认。", [
       {title:"已选择", body:res.session.chosen?.title || "候选方案"},
-      {title:"下一步", body:"发给朋友投票，或跳过投票由发起人直接确认预约"}
+      {title:"下一步", body:readyToBook ? "确认并预约" : "发给朋友确认，或跳过朋友确认"}
     ]);
 
     const sc = document.getElementById("scroller");
@@ -1504,8 +1550,12 @@ async function selectPlan(idx){
   });
 }
 
-function selectedCardHTML(plan){
+function selectedCardHTML(plan, readyToBook){
   const canVote = !!(STATE.session?.vote_room?.link);
+  const actions = readyToBook
+    ? `<button class="btn-confirm" onclick="bookSelectedPlan()">最终确认并预约</button>`
+    : `${canVote ? `<button class="btn-secondary" onclick="showVoteStage()">发给朋友确认</button>` : ""}
+      <button class="btn-secondary" onclick="skipVoteStage()">跳过朋友确认</button>`;
   return `<div class="plan locked">
     <div class="plan-rank">已选择</div>
     <div class="plan-head">
@@ -1519,30 +1569,33 @@ function selectedCardHTML(plan){
     <div class="plan-reason"><b>推荐理由：</b>${plan.reason}</div>
     <div class="plan-foot">
       <div class="plan-cost-num">人均 <b>¥${plan.total_cost_per_person}</b><span>· ${(plan.total_minutes/60).toFixed(1)}h</span></div>
-      <span class="locked-badge">等待最终确认</span>
+      <span class="locked-badge">${readyToBook ? "等待预约" : "等待朋友确认"}</span>
     </div>
     <div class="vote-actions" style="margin-top:10px">
-      ${canVote ? `<button class="btn-secondary" onclick="showVoteStage()">发给朋友投票</button>` : ""}
-      <button class="btn-secondary" onclick="skipVoteStage()">跳过投票</button>
-      <button class="btn-confirm" onclick="bookSelectedPlan()">确认并预约</button>
+      ${actions}
     </div>
   </div>`;
 }
 
 function showVoteStage(){
   renderVoteCard(STATE.session?.vote_room);
-  updateSideStatus("投票链接已生成，等朋友反馈后由发起人最终确认。", [
-    {title:"朋友确认", body:"复制链接或模拟朋友投票"},
-    {title:"下一步", body:"选定领先方案，再确认预约"}
+  renderFriendFeedback();
+  document.getElementById("confirmedWrap").innerHTML = selectedCardHTML(STATE.session.chosen, true);
+  updateSideStatus("朋友确认页已生成，若朋友有反馈先局部修改，再最终预约。", [
+    {title:"当前阶段", body:"朋友确认"},
+    {title:"下一步", body:"选定领先方案，或处理朋友反馈后预约"}
   ]);
 }
 
 function skipVoteStage(){
   document.getElementById("voteCard").classList.add("hidden");
   document.getElementById("voteCard").classList.remove("on");
-  updateSideStatus("已跳过朋友投票，发起人可以直接确认预约。", [
-    {title:"朋友确认", body:"本次跳过"},
-    {title:"下一步", body:"点击确认并预约"}
+  document.getElementById("friendFeedbackCard").classList.add("hidden");
+  document.getElementById("friendFeedbackCard").classList.remove("on");
+  document.getElementById("confirmedWrap").innerHTML = selectedCardHTML(STATE.session.chosen, true);
+  updateSideStatus("已跳过朋友确认，发起人可以直接最终预约。", [
+    {title:"当前阶段", body:"发起人确认"},
+    {title:"下一步", body:"最终确认并预约"}
   ]);
 }
 
@@ -1561,7 +1614,10 @@ async function bookSelectedPlan(){
     renderBill(res.session.chosen, null);
     document.getElementById("shareText").textContent = res.session.share_card || "";
     show("shareCard");
-    renderFriendFeedback();
+    document.getElementById("friendFeedbackCard").classList.add("hidden");
+    document.getElementById("friendFeedbackCard").classList.remove("on");
+    document.getElementById("voteCard").classList.add("hidden");
+    document.getElementById("voteCard").classList.remove("on");
     renderRescueOptions();
     setTimeout(()=>show("excCard"), 150);
     updateSideStatus("预约完成，可以查看账单或复制群聊消息。", [
@@ -1620,6 +1676,7 @@ async function triggerExc(type){
         <div class="exc-banner-icon">⚙</div>
         <div><b>方案已局部调整</b>（未重做整体方案）<br>${exc.reason||""}</div>
       </div>`;
+    show("excCard");
 
     // 同步分享卡 + 账单
     document.getElementById("shareText").textContent = res.session.share_card || "";
@@ -1681,7 +1738,8 @@ async function resetAll(){
   document.getElementById("goalInput").value = "";
   clearLogs();
   updateSideStatus("先在左侧说出你的需求，我会把主任务和可选推荐分开处理。", [
-    {title:"下一步", body:"等待输入。"}
+    {title:"当前阶段", body:"等待输入"},
+    {title:"下一步", body:"说出你想安排什么"}
   ]);
   ["btn-exc-rest","btn-exc-tick","btn-exc-time"].forEach(id=>{
     const el = document.getElementById(id);
@@ -1689,18 +1747,15 @@ async function resetAll(){
   });
   const btn = document.getElementById("btnGo");
   btn.disabled = false;
-  btn.textContent = "帮我安排 →";
+  btn.textContent = "帮我安排";
   document.getElementById("scroller").scrollTo({top:0, behavior:"smooth"});
 }
 
 /* ===== 初始化 ===== */
 function tickClock(){
-  const d = new Date();
-  document.getElementById("phoneClock").textContent =
-    String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  document.getElementById("phoneClock").textContent = "13:00";
 }
 tickClock();
-setInterval(tickClock, 30000);
 
 // 顶部搜索框回车 = 安排
 document.getElementById("goalInput").addEventListener("keydown", e=>{

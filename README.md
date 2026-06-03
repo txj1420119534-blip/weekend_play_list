@@ -32,7 +32,6 @@ weekend-agent/
 ├── server.py                  # FastAPI 薄服务层
 ├── config.py                  # 从 .env 读 API key
 ├── requirements.txt           # openai / fastapi / uvicorn / python-dotenv
-├── .env.example               # 复制为 .env 后填 DEEPSEEK_API_KEY
 └── .gitignore
 ```
 
@@ -46,12 +45,11 @@ weekend-agent/
 pip install -r requirements.txt
 ```
 
-### 2. 配置 API Key（项目里已附 .env，跳过即可；自己用请改）
+### 2. 配置 API Key（可选）
 
 ```bash
-# 复制示范文件，填入自己的 key
-cp .env.example .env
-# 编辑 .env，把 DEEPSEEK_API_KEY 改成自己的
+# 如需启用 DeepSeek/LLM 解析，新建 .env 并填入自己的 key
+# DEEPSEEK_API_KEY=你的 key
 ```
 
 > ⚠ 没有 key / key 失效 / 没装 openai 包都不会崩——Agent 会自动走规则兜底。
@@ -86,7 +84,7 @@ python server.py
 python cli.py
 ```
 
-会打印输入选项，输入数字 1~4 或直接输入一句话，跑完完整流程（解析 → 排方案 → 选方案 → 模拟下单 → 异常重排）。
+会打印输入选项，输入数字 1~4 或直接输入一句话，跑完完整流程（解析 → 追问 → 排方案 → 选方案 → 最终预约 → 异常重排）。
 
 ---
 
@@ -108,11 +106,12 @@ python -m agent.core       # 全流程
 
 ## 演示路径（30 秒讲完）
 
-1. 用户端打开后，预填了一句"今天下午和朋友 4 个人出去玩…"，点 **帮我安排** —— 右侧日志开始一条条点亮。
-2. 解析卡 → 2 个方案卡（含评分环 + 时间轴 + 推荐理由 + 风险提示）。
-3. 点 **确认这个方案** → 模拟预订 → 出 **增值推荐**（顺路加一杯）→ **账单卡** → **分享卡**（可一键复制）。
-4. 点 **任一个异常**（餐厅满座 / 门票售罄 / 时间冲突）→ Agent 局部重排（不重做整方案）→ 时间轴中坏掉的节点画绿圈 + "已替换" 标。
-5. 切到 **平台后台**：拖动任一商户的 ad_bid 滑块 → 立即写回 JSON，再回到用户端「重新规划」就能看到推广商户上浮。
+1. 用户端输入一句自然话，点 **帮我安排**。
+2. 系统先展示 **本次目标**；缺关键条件时先追问，补齐后再出方案。
+3. 点 **选这个方案** → 进入 **朋友确认 / 跳过朋友确认**。
+4. 若朋友反馈时间或场次问题，先局部修改；发起人再点 **最终确认并预约**。
+5. 预约完成后展示 **账单 / 群聊消息**；现场情况变化时再触发 **异常补救**。
+6. 切到 **平台后台**：拖动任一商户的 ad_bid 滑块 → 立即写回 JSON，再回到用户端「重新规划」就能看到推广商户上浮。
 
 ---
 
@@ -147,7 +146,11 @@ python -m agent.core       # 全流程
 | 方法 | 路径 | 用途 |
 |---|---|---|
 | POST | `/plan` | `{text}` → 解析 + 排方案，返回 session |
-| POST | `/confirm` | `{plan_index}` → 选方案 + 模拟下单 + 出分享卡 |
+| POST | `/clarify` / `/refine` | 补充追问信息后继续规划 |
+| POST | `/select` | `{plan_index}` → 只选中候选方案，不预约 |
+| POST | `/vote/create` | 生成朋友确认 / 投票房间 |
+| GET/POST | `/vote/{room_id}` | 查看或提交 Mock 朋友投票 |
+| POST | `/confirm` | 最终预约 + 出账单/分享卡 |
 | POST | `/exception` | `{type}` → 注入异常并局部重排 |
 | POST | `/reject` | `{merchant_id}` → 拒绝某商户（记入抑制池） |
 | POST | `/reset` | 重置 session |
