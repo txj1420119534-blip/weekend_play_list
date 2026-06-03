@@ -29,14 +29,14 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.86s
 - 是否通过：PASS
 - 失败原因：无
 
 ### 2. period hot milk tea - PASS
 
 - 输入：`我生理期，想喝点热的不要太甜的奶茶`
-- 解析字段：`{"scene": "addon_only", "primary_intent": "milk_tea", "main_role": "ADDON", "requested_categories": ["奶茶"], "negative_intents": ["not_too_sweet"], "safety_flags": ["body_uncomfortable", "not_too_sweet", "cannot_ice"], "drink_preferences": {"sugar_level": "low", "ice_level": "hot", "hot_required": true}, "party_size": 1, "start_time": "19:00", "budget_per_person": 150, "transport": "public", "confidence": 0.9400000000000001, "missing_fields": ["start_time", "home_area"]}`
+- 解析字段：`{"scene": "addon_only", "primary_intent": "milk_tea", "main_role": "ADDON", "requested_categories": ["奶茶"], "negative_intents": ["not_too_sweet"], "safety_flags": ["body_uncomfortable", "cannot_ice", "not_too_sweet"], "drink_preferences": {"sugar_level": "low", "ice_level": "hot", "hot_required": true}, "party_size": 1, "start_time": "19:00", "budget_per_person": 150, "transport": "public", "confidence": 0.9400000000000001, "missing_fields": ["start_time", "home_area"]}`
 - result_type：`supported_success`
 - 是否触发追问：`True`
 - 是否已补全进入规划：`True`
@@ -44,7 +44,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.84s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -59,7 +59,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.48s
+- 单用例耗时：1.72s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -74,7 +74,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.43s
+- 单用例耗时：1.89s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -89,7 +89,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.4s
+- 单用例耗时：1.32s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -104,7 +104,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.84s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -119,7 +119,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=needs_clarification executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.83s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -134,7 +134,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.19s
+- 单用例耗时：2.11s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -149,7 +149,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.86s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -164,7 +164,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.97s
+- 单用例耗时：2.69s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -179,14 +179,14 @@
 - 可选加购摘要：optional=喜茶(奶茶)
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：3.55s
+- 单用例耗时：4.47s
 - 是否通过：PASS
 - 失败原因：无
 
 ### 12. family safe - PASS
 
 - 输入：`带孩子周末下午出去玩，别太累，吃清淡点`
-- 解析字段：`{"scene": "family_out", "primary_intent": "weekend_plan", "main_role": "PLAY", "requested_categories": [], "negative_intents": [], "safety_flags": ["no_spicy", "kid_safe", "light_food"], "drink_preferences": {"sugar_level": null, "ice_level": null, "hot_required": false}, "party_size": 3, "start_time": "14:00", "budget_per_person": 180, "transport": "public", "confidence": 0.72, "missing_fields": ["party_size", "start_time", "budget_per_person", "home_area", "distance_tolerance"]}`
+- 解析字段：`{"scene": "family_out", "primary_intent": "weekend_plan", "main_role": "PLAY", "requested_categories": [], "negative_intents": [], "safety_flags": ["light_food", "kid_safe", "no_spicy"], "drink_preferences": {"sugar_level": null, "ice_level": null, "hot_required": false}, "party_size": 3, "start_time": "14:00", "budget_per_person": 180, "transport": "public", "confidence": 0.72, "missing_fields": ["party_size", "start_time", "budget_per_person", "home_area", "distance_tolerance"]}`
 - result_type：`supported_success`
 - 是否触发追问：`True`
 - 是否已补全进入规划：`True`
@@ -194,7 +194,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：2.32s
+- 单用例耗时：2.87s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -209,7 +209,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.01s
+- 单用例耗时：0.84s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -224,7 +224,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); DQ冰淇淋(冰淇淋)
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.54s
+- 单用例耗时：2.46s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -239,7 +239,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.27s
+- 单用例耗时：1.8s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -254,7 +254,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：1.54s
+- 单用例耗时：1.67s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -269,7 +269,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.99s
+- 单用例耗时：1.51s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -284,7 +284,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=executed executed=True bookings=1 share=yes
 - 异常重排结果：未触发
-- 单用例耗时：1.51s
+- 单用例耗时：3.26s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -299,7 +299,7 @@
 - 可选加购摘要：optional=喜茶(奶茶)
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：5.99s
+- 单用例耗时：5.69s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -314,7 +314,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=executed executed=True bookings=1 share=yes
 - 异常重排结果：未触发
-- 单用例耗时：1.85s
+- 单用例耗时：2.88s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -329,7 +329,7 @@
 - 可选加购摘要：optional=喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：restaurant | 原「院子里」已满座。已就近换到 新街口 的「火锅英雄」（评分 4.5），其它节点不动，人均变为 ¥188，略超预算。 | needs_user_confirm=True
-- 单用例耗时：2.65s
+- 单用例耗时：3.08s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -344,7 +344,7 @@
 - 可选加购摘要：optional=喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：restaurant | 原「院子里」已满座。已就近换到 新街口 的「火锅英雄」（评分 4.5），其它节点不动，人均变为 ¥188，略超预算。 | needs_user_confirm=True
-- 单用例耗时：2.29s
+- 单用例耗时：3.2s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -359,7 +359,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：activity | 原「谜盒剧场·欢乐制造局」门票已售罄。已就近换到 河西 的「城市剧本杀·迷雾剧场」（评分 4.7），其它节点不动，人均变为 ¥98，仍在预算内。 | needs_user_confirm=False
-- 单用例耗时：1.3s
+- 单用例耗时：2.79s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -374,7 +374,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：time | 收到反馈「时间太赶」。已把整条行程顺延 1 小时——出发从 19:00 改到 20:00，活动和餐厅原样保留，总时长不变。 | needs_user_confirm=None
-- 单用例耗时：1.8s
+- 单用例耗时：2.24s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -389,7 +389,7 @@
 - 可选加购摘要：optional=喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：restaurant | 原「院子里」已满座。已就近换到 新街口 的「火锅英雄」（评分 4.5），其它节点不动，人均变为 ¥188，略超预算。 | needs_user_confirm=True
-- 单用例耗时：2.59s
+- 单用例耗时：3.6s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -404,7 +404,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=needs_clarification executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.11s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -419,7 +419,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=needs_clarification executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.83s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -434,7 +434,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=needs_clarification executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.81s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -449,7 +449,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.79s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -464,7 +464,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=None executed=None bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.0s
+- 单用例耗时：0.78s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -479,7 +479,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.36s
+- 单用例耗时：1.51s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -494,7 +494,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.35s
+- 单用例耗时：1.11s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -509,7 +509,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.4s
+- 单用例耗时：1.47s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -524,7 +524,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.33s
+- 单用例耗时：1.26s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -539,7 +539,7 @@
 - 可选加购摘要：optional=喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：restaurant | 原「院子里」已满座。已就近换到 新街口 的「火锅英雄」（评分 4.5），其它节点不动，人均变为 ¥188，略超预算。 | needs_user_confirm=True
-- 单用例耗时：3.47s
+- 单用例耗时：3.81s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -554,7 +554,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：time | 收到反馈「时间太赶」。已把整条行程顺延 1 小时——出发从 19:00 改到 20:00，活动和餐厅原样保留，总时长不变。 | needs_user_confirm=None
-- 单用例耗时：1.54s
+- 单用例耗时：2.27s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -569,7 +569,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); DQ冰淇淋(冰淇淋)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：activity | 原「零点推理社」门票已售罄。已就近换到 河西 的「城市剧本杀·迷雾剧场」（评分 4.7），其它节点不动，人均变为 ¥98，仍在预算内。 | needs_user_confirm=False
-- 单用例耗时：0.79s
+- 单用例耗时：2.08s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -584,7 +584,7 @@
 - 可选加购摘要：optional=院子里(江浙菜); 喜茶(奶茶)
 - 预约状态：mode=selected executed=False bookings=0 share=yes
 - 异常重排结果：budget | 已把「谜盒剧场·欢乐制造局」换成更便宜的「城市剧本杀·迷雾剧场」，其它节点不动，人均变为 ¥98 | needs_user_confirm=False
-- 单用例耗时：1.33s
+- 单用例耗时：2.51s
 - 是否通过：PASS
 - 失败原因：无
 
@@ -599,14 +599,14 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.01s
+- 单用例耗时：0.8s
 - 是否通过：PASS
 - 失败原因：无
 
 ### 40. kid KTV no alcohol - PASS
 
 - 输入：`带孩子去KTV唱歌，别有酒`
-- 解析字段：`{"scene": "family_out", "primary_intent": "ktv", "main_role": "PLAY", "requested_categories": ["KTV"], "negative_intents": ["no_alcohol"], "safety_flags": ["no_alcohol", "kid_safe"], "drink_preferences": {"sugar_level": null, "ice_level": null, "hot_required": false}, "party_size": 3, "start_time": "19:00", "budget_per_person": 150, "transport": "public", "confidence": 0.9400000000000001, "missing_fields": ["party_size", "start_time", "budget_per_person", "home_area", "distance_tolerance"]}`
+- 解析字段：`{"scene": "family_out", "primary_intent": "ktv", "main_role": "PLAY", "requested_categories": ["KTV"], "negative_intents": ["no_alcohol"], "safety_flags": ["kid_safe", "no_alcohol"], "drink_preferences": {"sugar_level": null, "ice_level": null, "hot_required": false}, "party_size": 3, "start_time": "19:00", "budget_per_person": 150, "transport": "public", "confidence": 0.9400000000000001, "missing_fields": ["party_size", "start_time", "budget_per_person", "home_area", "distance_tolerance"]}`
 - result_type：`graceful_unavailable`
 - 是否触发追问：`True`
 - 是否已补全进入规划：`True`
@@ -614,7 +614,7 @@
 - 可选加购摘要：无
 - 预约状态：mode=planned executed=False bookings=0 share=no
 - 异常重排结果：未触发
-- 单用例耗时：0.01s
+- 单用例耗时：0.78s
 - 是否通过：PASS
 - 失败原因：无
 

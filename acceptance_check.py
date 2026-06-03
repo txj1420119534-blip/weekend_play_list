@@ -11,12 +11,10 @@ from __future__ import annotations
 import json
 import os
 import py_compile
-import queue
 import re
 import shutil
 import subprocess
 import sys
-import threading
 import time
 from pathlib import Path
 from typing import Any, Callable
@@ -234,10 +232,11 @@ class Case:
         self.runner = runner
         self.timeout_seconds = timeout_seconds
 
-    def _run_inner(self) -> dict:
+    def run_direct(self) -> dict:
+        started = time.time()
         ctx = self.runner() if self.runner else default_runner(self.input)
         failures = self.check(ctx)
-        return {
+        out = {
             "id": self.cid,
             "name": self.name,
             "input": self.input,
@@ -249,49 +248,21 @@ class Case:
             "addon_summary": ctx.get("addon_summary", _addon_summary(ctx.get("session", {}))),
             "booking_status": ctx.get("booking_status", booking_status(ctx.get("session", {}))),
             "exception_summary": ctx.get("exception_summary", _exception_summary(ctx.get("session", {}))),
-            "elapsed_seconds": 0.0,
+            "elapsed_seconds": round(time.time() - started, 2),
             "passed": not failures,
             "failures": failures,
         }
-
-    def run(self) -> dict:
-        result_q: queue.Queue = queue.Queue(maxsize=1)
-        print(f"[START] {self.cid:02d} {self.name}", flush=True)
-
-        def target():
-            try:
-                result_q.put(self._run_inner())
-            except Exception as exc:
-                result_q.put({
-                    "id": self.cid, "name": self.name, "input": self.input,
-                    "request": {}, "clarification_triggered": False, "clarification_completed": False,
-                    "result_type": "error", "plan_summary": "运行异常",
-                    "addon_summary": "运行异常", "booking_status": "运行异常",
-                    "exception_summary": "运行异常", "elapsed_seconds": 0.0,
-                    "passed": False, "failures": [f"case raised: {exc}"],
-                })
-
-        started = time.time()
-        t = threading.Thread(target=target, daemon=True)
-        t.start()
-        t.join(self.timeout_seconds)
-        elapsed = time.time() - started
-        if t.is_alive():
-            out = {
-                "id": self.cid, "name": self.name, "input": self.input,
-                "request": {}, "clarification_triggered": False, "clarification_completed": False,
-                "result_type": "error", "plan_summary": "单用例超时",
-                "addon_summary": "单用例超时", "booking_status": "单用例超时",
-                "exception_summary": "单用例超时", "elapsed_seconds": round(elapsed, 2),
-                "passed": False, "failures": [f"case timeout after {self.timeout_seconds}s"],
-            }
-            print(f"[END] {self.cid:02d} {self.name} - FAIL ({out['elapsed_seconds']}s)", flush=True)
-            return out
-        out = result_q.get()
-        out["elapsed_seconds"] = round(elapsed, 2)
-        status = "PASS" if out["passed"] else "FAIL"
-        print(f"[END] {self.cid:02d} {self.name} - {status} ({out['elapsed_seconds']}s)", flush=True)
         return out
+
+    def failed_result(self, message: str, elapsed: float = 0.0) -> dict:
+        return {
+            "id": self.cid, "name": self.name, "input": self.input,
+            "request": {}, "clarification_triggered": False, "clarification_completed": False,
+            "result_type": "error", "plan_summary": "运行异常",
+            "addon_summary": "运行异常", "booking_status": "运行异常",
+            "exception_summary": "运行异常", "elapsed_seconds": round(elapsed, 2),
+            "passed": False, "failures": [message],
+        }
 
 
 def check_compile() -> list[str]:
@@ -1097,7 +1068,87 @@ def render_submission_cleanup_report(results: list[dict], system_failures: list[
     ]) + "\n"
 
 
+def get_case(case_id: int) -> Case | None:
+    for case in make_cases():
+        if case.cid == case_id:
+            return case
+    return None
+
+
+def run_single_case(case_id: int) -> int:
+    case = get_case(case_id)
+    if not case:
+        result = {
+            "id": case_id,
+            "name": f"case {case_id}",
+            "input": "",
+            "request": {},
+            "clarification_triggered": False,
+            "clarification_completed": False,
+            "result_type": "error",
+            "plan_summary": "用例不存在",
+            "addon_summary": "用例不存在",
+            "booking_status": "用例不存在",
+            "exception_summary": "用例不存在",
+            "elapsed_seconds": 0.0,
+            "passed": False,
+            "failures": [f"case {case_id} not found"],
+        }
+        print(json.dumps(result, ensure_ascii=False), flush=True)
+        return 1
+    try:
+        result = case.run_direct()
+    except Exception as exc:
+        result = case.failed_result(f"case raised: {exc}")
+    print(json.dumps(result, ensure_ascii=False), flush=True)
+    return 0
+
+
+def run_case_subprocess(case: Case, timeout_seconds: int = 60) -> dict:
+    print(f"[START] {case.cid:02d} {case.name}", flush=True)
+    started = time.time()
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--case", str(case.cid)],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired:
+        result = case.failed_result(f"case subprocess timeout after {timeout_seconds}s", time.time() - started)
+        print(f"[END] {case.cid:02d} {case.name} - FAIL ({result['elapsed_seconds']}s)", flush=True)
+        return result
+
+    elapsed = time.time() - started
+    stdout = (proc.stdout or "").strip()
+    try:
+        result = json.loads(stdout.splitlines()[-1]) if stdout else case.failed_result("case subprocess returned empty stdout", elapsed)
+    except Exception as exc:
+        result = case.failed_result(f"case subprocess JSON parse failed: {exc}; stdout={stdout[:500]}", elapsed)
+
+    if proc.returncode != 0 and result.get("passed") is not False:
+        result = case.failed_result(f"case subprocess exited {proc.returncode}: {(proc.stderr or '').strip()[:500]}", elapsed)
+    result["elapsed_seconds"] = round(elapsed, 2)
+    status = "PASS" if result.get("passed") else "FAIL"
+    print(f"[END] {case.cid:02d} {case.name} - {status} ({result['elapsed_seconds']}s)", flush=True)
+    if proc.stderr and not result.get("passed"):
+        print(proc.stderr.strip()[:500], flush=True)
+    return result
+
+
 def main() -> int:
+    if len(sys.argv) == 3 and sys.argv[1] == "--case":
+        try:
+            return run_single_case(int(sys.argv[2]))
+        except ValueError:
+            print(json.dumps({"id": sys.argv[2], "passed": False, "failures": ["invalid case id"]}, ensure_ascii=False), flush=True)
+            return 1
+
     started = time.time()
     system_failures = []
     system_failures.extend(check_compile())
@@ -1108,7 +1159,8 @@ def main() -> int:
     system_failures.extend(check_api_smoke())
     system_failures.extend(check_security_scan())
 
-    results = [case.run() for case in make_cases()]
+    cases = make_cases()
+    results = [run_case_subprocess(case) for case in cases]
     failed = [r for r in results if not r["passed"]]
     stable_exit = True
     (ROOT / "ACCEPTANCE_REPORT.md").write_text(render_acceptance(results, system_failures, stable_exit), encoding="utf-8")
