@@ -1,5 +1,36 @@
 # Change Summary
 
+## Final Tiny Fix
+
+### 修改文件列表
+
+- `data/merchants.json`
+- `acceptance_check.py`
+- `server.py`
+- `README.md`
+- `ACCEPTANCE_REPORT.md`
+- `CODE_QUALITY_REPORT.md`
+- `CHANGE_SUMMARY.md`
+- `SUBMISSION_CLEANUP_REPORT.md`
+
+### 每个文件改了什么
+
+- `data/merchants.json`：修复 `m_029`、`m_035`、`m_036`、`m_037`、`m_038`、`m_039`、`m_040`、`m_041`、`m_042` 的 `image` 问号乱码，改为对应 emoji。
+- `acceptance_check.py`：data_integrity 增加 `image` 和更多用户端可能渲染字段的问号检查；API smoke 覆盖 `/clarify`；投票接口非法 JSON 兜底纳入 smoke；每个 case 开始/结束实时 `print(..., flush=True)`。
+- `server.py`：新增 `/clarify`，行为等同 `/refine`；`POST /vote/{room_id}` 非法 JSON 返回 `{"ok": false, "message": "请求格式不正确"}`。
+- `README.md`：商户库数量改为 42；接口表保留 `/clarify` 与 `/refine`；新增 `python acceptance_check.py` 覆盖 40 个核心场景说明。
+- `ACCEPTANCE_REPORT.md`、`CODE_QUALITY_REPORT.md`、`SUBMISSION_CLEANUP_REPORT.md`：由第二遍验收重新生成。
+
+### 验收结果
+
+- `python -m compileall agent server.py cli.py acceptance_check.py`：PASS
+- `python acceptance_check.py` 第一遍：40/40 PASS
+- `python acceptance_check.py` 第二遍：40/40 PASS
+- 是否还有乱码数据：NO
+- API smoke 是否通过：YES
+- session_id 隔离是否通过：YES
+- 安全扫描是否通过：YES
+
 ## Final Submission Cleanup
 
 ### 修改文件列表

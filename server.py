@@ -178,6 +178,11 @@ async def refine(request: Request):
         return JSONResponse(status_code=200, content={"ok": False, "error": str(e)})
 
 
+@app.post("/clarify")
+async def clarify(request: Request):
+    return await refine(request)
+
+
 @app.post("/confirm")
 async def confirm(request: Request):
     """最终确认：执行预订 + 生成分享卡。"""
@@ -276,7 +281,10 @@ async def vote_submit(room_id: str, request: Request):
     room = VOTE_ROOMS.get(room_id)
     if not room:
         return JSONResponse(status_code=200, content={"ok": False, "message": "未找到投票房间"})
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=200, content={"ok": False, "message": "请求格式不正确"})
     idx = str(body.get("plan_index", ""))
     voter = (body.get("voter") or f"friend-{len(room['voters']) + 1}").strip()
     if idx not in room["votes"]:
@@ -408,7 +416,7 @@ async def admin():
 @app.get("/health")
 async def health():
     return {"ok": True, "service": "周末搞定", "endpoints": [
-        "POST /plan", "POST /refine", "POST /select", "POST /confirm", "POST /exception",
+        "POST /plan", "POST /refine", "POST /clarify", "POST /select", "POST /confirm", "POST /exception",
         "POST /reject", "POST /reset",
         "POST /vote/create", "GET /vote/{room_id}", "POST /vote/{room_id}", "GET /vote/{room_id}/page",
         "GET /merchants", "POST /merchants", "POST /merchants/ad_bid",

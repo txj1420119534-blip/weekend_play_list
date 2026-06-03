@@ -256,6 +256,7 @@ class Case:
 
     def run(self) -> dict:
         result_q: queue.Queue = queue.Queue(maxsize=1)
+        print(f"[START] {self.cid:02d} {self.name}", flush=True)
 
         def target():
             try:
@@ -276,7 +277,7 @@ class Case:
         t.join(self.timeout_seconds)
         elapsed = time.time() - started
         if t.is_alive():
-            return {
+            out = {
                 "id": self.cid, "name": self.name, "input": self.input,
                 "request": {}, "clarification_triggered": False, "clarification_completed": False,
                 "result_type": "error", "plan_summary": "单用例超时",
@@ -284,8 +285,12 @@ class Case:
                 "exception_summary": "单用例超时", "elapsed_seconds": round(elapsed, 2),
                 "passed": False, "failures": [f"case timeout after {self.timeout_seconds}s"],
             }
+            print(f"[END] {self.cid:02d} {self.name} - FAIL ({out['elapsed_seconds']}s)", flush=True)
+            return out
         out = result_q.get()
         out["elapsed_seconds"] = round(elapsed, 2)
+        status = "PASS" if out["passed"] else "FAIL"
+        print(f"[END] {self.cid:02d} {self.name} - {status} ({out['elapsed_seconds']}s)", flush=True)
         return out
 
 
@@ -377,7 +382,9 @@ def check_data_integrity() -> list[str]:
     travel = json.loads(TRAVEL.read_text(encoding="utf-8"))
     visible_fields = [
         "name", "category", "area", "review_tags", "review_snippet",
-        "group_deal", "recommended_dishes",
+        "group_deal", "recommended_dishes", "image", "tags", "description",
+        "script_name", "script_style", "open_tables", "signature_dishes",
+        "cuisine_tags", "diet_support", "flags", "suitable_scenes",
     ]
     for m in merchants:
         for field in visible_fields:
@@ -436,6 +443,18 @@ def check_api_smoke() -> list[str]:
             },
         }, headers=headers_a).json()
         require(r.get("ok") is True and r.get("session", {}).get("plans"), "/refine session_a failed to plan", failures)
+        room_id = (r.get("session", {}).get("vote_room") or {}).get("room_id")
+        if room_id:
+            bad_vote = client.post(
+                f"/vote/{room_id}",
+                data="{bad json",
+                headers={**headers_a, "Content-Type": "application/json"},
+            ).json()
+            require(
+                bad_vote.get("ok") is False and bad_vote.get("message") == "请求格式不正确",
+                "/vote/{room_id} invalid JSON did not return readable error",
+                failures,
+            )
 
         r_b = client.post("/plan", json={
             "session_id": sid_b,
@@ -443,10 +462,11 @@ def check_api_smoke() -> list[str]:
         }, headers=headers_b).json()
         require(r_b.get("ok") is True, "/plan session_b failed", failures)
         if r_b.get("session", {}).get("mode") == "needs_clarification":
-            r_b = client.post("/refine", json={
+            r_b = client.post("/clarify", json={
                 "session_id": sid_b,
                 "answers": {"start_time": "20:00", "home_area": "新街口", "budget_per_person": 30},
             }, headers=headers_b).json()
+            require(r_b.get("ok") is True, "/clarify session_b failed", failures)
         req_b = r_b.get("session", {}).get("request", {})
         require(req_b.get("primary_intent") == "milk_tea", "session_b did not keep milk tea request", failures)
 
@@ -1049,7 +1069,7 @@ def render_submission_cleanup_report(results: list[dict], system_failures: list[
         "## Final Submission Cleanup",
         "",
         "- 不改大架构，不新增业务花活。",
-        "- 修复新增商户和 travel 路线中的用户可见乱码。",
+        "- 修复新增商户、image 字段和 travel 路线中的用户可见乱码。",
         "- acceptance_check.py 增加 data_integrity、API smoke、session_id 隔离和文件系统安全扫描。",
         "- ACCEPTANCE_REPORT.md 增加 result_type，并拆分“是否触发追问 / 是否已补全进入规划”。",
         "",

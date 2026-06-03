@@ -11,7 +11,7 @@
 ```
 weekend-agent/
 ├── data/                      # Mock 数据（永远不调真实 API）
-│   ├── merchants.json         #   商户库（32 个：玩 / 吃 / 宅家 / 加一杯）
+│   ├── merchants.json         #   商户库（42 个：玩 / 吃 / 宅家 / 加一杯）
 │   ├── scenes.json            #   场景 → 槽位模板
 │   ├── travel.json            #   区域间交通时间
 │   ├── samples.json           #   一句话示例
@@ -160,6 +160,16 @@ python -m agent.core       # 全流程
 | GET  | `/` | 用户端 app.html |
 | GET  | `/admin` | 平台后台 admin.html |
 | GET  | `/health` | 健康检查 |
+
+---
+
+## 参赛验收脚本
+
+```bash
+python acceptance_check.py
+```
+
+验收脚本 `python acceptance_check.py` 覆盖 40 个核心场景，包括主任务识别、不改题、剧本杀深度、宅家/生日/亲子/自驾安全、用户反馈、预约状态、异常重排、API smoke、session_id 隔离、乱码数据和安全扫描。
 
 ---
 

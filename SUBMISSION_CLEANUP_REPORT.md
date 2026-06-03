@@ -3,7 +3,7 @@
 ## Final Submission Cleanup
 
 - 不改大架构，不新增业务花活。
-- 修复新增商户和 travel 路线中的用户可见乱码。
+- 修复新增商户、image 字段和 travel 路线中的用户可见乱码。
 - acceptance_check.py 增加 data_integrity、API smoke、session_id 隔离和文件系统安全扫描。
 - ACCEPTANCE_REPORT.md 增加 result_type，并拆分“是否触发追问 / 是否已补全进入规划”。
 
