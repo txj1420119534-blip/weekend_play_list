@@ -17,8 +17,11 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 def _load_json(filename: str):
     path = os.path.join(DATA_DIR, filename)
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return [] if filename == "merchants.json" else {}
 
 
 def _gen_order_id(prefix: str = "MT") -> str:

@@ -158,6 +158,27 @@ class Agent:
                     v = []
                 elif isinstance(v, str):
                     v = [v]
+            if k == "experience_mode":
+                if v == "stay_in_online":
+                    request["scene"] = "stay_in"
+                    request["main_role"] = "STAYIN"
+                    request["primary_intent"] = "stay_in"
+                    request["requested_categories"] = ["在线电影"]
+                    request["explicit_categories"] = [{"role": "STAYIN", "category": "在线电影", "keyword": "在线看"}]
+                    request["home_area"] = "线上"
+                elif v == "cinema_out":
+                    request["scene"] = "play_only"
+                    request["main_role"] = "PLAY"
+                    request["primary_intent"] = "movie"
+                    request["requested_categories"] = ["电影院"]
+                    request["explicit_categories"] = [{"role": "PLAY", "category": "电影院", "keyword": "影院"}]
+                    neg = set(request.get("negative_intents", []) or [])
+                    neg.discard("no_outdoor")
+                    request["negative_intents"] = list(neg)
+                request.pop("intent_conflict", None)
+                request["confidence"] = 0.86
+                applied.append(f"{k}={v}")
+                continue
             request[k] = v
             applied.append(f"{k}={v}")
         request = _normalize_request_types(request)

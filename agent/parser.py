@@ -47,6 +47,10 @@ BODY_UNCOMFORTABLE_RE = r"生理期|姨妈|来例假|肚子不舒服|胃不舒�
 EXPLICIT_KEYWORDS = [
     # PLAY
     ("剧本杀",   "PLAY",   "剧本杀"),
+    ("恐怖本",   "PLAY",   "剧本杀"),
+    ("欢乐本",   "PLAY",   "剧本杀"),
+    ("盒装本",   "PLAY",   "剧本杀"),
+    ("欢乐盒装本", "PLAY", "剧本杀"),
     ("打本",     "PLAY",   "剧本杀"),
     ("约本",     "PLAY",   "剧本杀"),
     ("推本",     "PLAY",   "剧本杀"),
@@ -250,6 +254,10 @@ def _derive_safety_flags(text: str, result: dict) -> list[str]:
         flags.add("cannot_ice")
     if result.get("has_kid"):
         flags.add("kid_safe")
+    if result.get("transport") == "self_drive":
+        flags.add("drive_safe")
+        if re.search(r"喝点|喝酒|小酒|酒吧|精酿|啤酒", text or ""):
+            flags.add("no_alcohol")
     return _merge_unique(list(flags))
 
 
@@ -296,11 +304,28 @@ def _apply_intent_fields(text: str, result: dict, explicit_cats: list[dict], sem
     if primary in ("milk_tea", "coffee"):
         result["window_hours"] = min(int(result.get("window_hours", 1) or 1), 1)
 
+    tags = set(semantic.get("intent_tags", []) or [])
+    if "newbie" in tags:
+        result["newbie"] = True
+    if result.get("transport") == "self_drive" and "no_alcohol" in result.get("safety_flags", []):
+        diet = set(result.get("diet_limits", []) or [])
+        diet.add("no_alcohol")
+        result["diet_limits"] = _merge_unique(list(diet))
+    if re.search(NO_OUTDOOR_RE, text or "") and re.search(r"影院|电影院|去.*电影", text or ""):
+        result["intent_conflict"] = "stay_in_vs_cinema"
+        result["confidence"] = 0.35
+        result["clarification_hint"] = "你是想宅家在线看，还是出门去影院？"
+        return
+
     confidence = 0.92 if explicit_cats else 0.72
     if result.get("_parse_method") == "llm":
         confidence += 0.03
     if negative:
         confidence += 0.02
+    if not text or not re.search(r"[\u4e00-\u9fffA-Za-z0-9]", text):
+        confidence = 0.25
+    elif not explicit_cats and not semantic.get("intent_tags"):
+        confidence = 0.4
     result["confidence"] = min(0.98, confidence)
 
 

@@ -308,9 +308,12 @@ refresh();
 # ─────────────────────────────────────────────────────────────────
 @app.get("/merchants")
 async def get_merchants():
-    with open(MERCHANTS_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return {"ok": True, "data": data}
+    try:
+        with open(MERCHANTS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {"ok": True, "data": data}
+    except Exception as e:
+        return JSONResponse(status_code=200, content={"ok": False, "error": f"商户数据不可用：{e}"})
 
 
 @app.post("/merchants")

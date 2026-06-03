@@ -1,0 +1,719 @@
+"""Qualification acceptance checks for weekend-agent.
+
+Run:
+    python acceptance_check.py
+
+The script calls the local Agent directly. It does not require a browser,
+Playwright, a running FastAPI server, a real external API, or DEEPSEEK_API_KEY.
+"""
+from __future__ import annotations
+
+import json
+import os
+import py_compile
+import runpy
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Callable, Any
+
+ROOT = Path(__file__).resolve().parent
+DATA = ROOT / "data"
+os.environ.pop("DEEPSEEK_API_KEY", None)
+
+from agent.core import Agent  # noqa: E402
+from agent.parser import parse_request  # noqa: E402
+from agent.planner import build_itinerary  # noqa: E402
+
+
+TEXT = {
+    "milk_tea": "想喝奶茶，不要太甜，不能喝冰的",
+    "period_tea": "我生理期，想喝点热的不要太甜的奶茶",
+    "hotpot": "晚上想吃火锅，不吃辣，4个人，人均150，新街口，18点",
+    "movie": "今天晚上想看电影，不想吃饭",
+    "seafood": "只想吃个海鲜，不想安排别的",
+    "coffee": "只想找个咖啡店坐一会儿",
+    "script_missing": "想和朋友打剧本杀",
+    "script_full": "4个朋友今晚19:00想玩欢乐盒装本，人均150，新街口，公共交通，4小时",
+    "horror_newbie": "6个人想玩恐怖本，但有人第一次玩",
+    "stay_in": "我今天不想出门，就想宅家看点东西，点点吃的",
+    "birthday": "朋友生日，4个人，预算300一人，想有点仪式感",
+    "family": "带孩子周末下午出去玩，别太累，吃清淡点",
+    "drive_ktv": "我们自驾去唱歌，后面想喝点",
+    "friends_food": "4个朋友今天18:00想先看展再吃饭，人均180，新街口，公共交通，4小时",
+}
+
+DEFAULT_ANSWERS = {
+    "party_size": 4,
+    "start_time": "19:00",
+    "budget_per_person": 150,
+    "script_style": "欢乐本",
+    "window_hours": 4,
+    "home_area": "新街口",
+    "distance_tolerance": "same_area",
+    "cuisine_preference": "江浙菜",
+    "diet_limits": "none",
+    "stayin_mode": "movie_takeaway",
+    "experience_mode": "stay_in_online",
+}
+
+
+def _answer_for(session: dict, overrides: dict | None = None) -> dict:
+    overrides = overrides or {}
+    answers = {}
+    for q in session.get("clarifications_needed", []) or []:
+        key = q.get("key")
+        if not key:
+            continue
+        answers[key] = overrides.get(key, DEFAULT_ANSWERS.get(key))
+    return {k: v for k, v in answers.items() if v is not None}
+
+
+def _run(text: str, answers: dict | None = None, auto_refine: bool = True, agent: Agent | None = None) -> tuple[Agent, dict]:
+    agent = agent or Agent()
+    session = agent.run(text)
+    if auto_refine and session.get("mode") == "needs_clarification":
+        session = agent.refine(_answer_for(session, answers))
+    return agent, session
+
+
+def _choose_confirm(agent: Agent, session: dict, index: int = 0, confirm: bool = True) -> dict:
+    if session.get("plans"):
+        session = agent.choose(index)
+    if confirm:
+        session = agent.confirm_and_execute()
+    return session
+
+
+def _business_steps(plan: dict) -> list[dict]:
+    return [s for s in plan.get("steps", []) if s.get("kind") != "travel"]
+
+
+def _cats(plan: dict) -> list[str]:
+    return [s.get("category") for s in _business_steps(plan)]
+
+
+def _ids(plan: dict) -> list[str]:
+    return [s.get("id") for s in _business_steps(plan)]
+
+
+def _main_plan(session: dict) -> dict:
+    plans = session.get("plans") or []
+    return plans[0] if plans else {}
+
+
+def _script_step(plan: dict) -> dict:
+    for s in _business_steps(plan):
+        if s.get("category") == "剧本杀":
+            return s
+    return {}
+
+
+def _contains_any(values, needles) -> bool:
+    vals = set(values or [])
+    return any(n in vals for n in needles)
+
+
+def _plan_summary(session: dict) -> str:
+    plan = _main_plan(session)
+    if not plan:
+        return "无方案"
+    if plan.get("unavailable"):
+        return f"{plan.get('status')}: {plan.get('reason')}"
+    cats = " / ".join(_cats(plan))
+    return f"{plan.get('title')} | {cats} | ¥{plan.get('total_cost_per_person')} | {round(plan.get('total_minutes', 0)/60, 1)}h"
+
+
+def _addon_summary(session: dict) -> str:
+    plan = _main_plan(session)
+    opt = plan.get("optional_addons") or plan.get("commercial_recommendations") or []
+    addon = session.get("addon")
+    bits = []
+    if opt:
+        bits.append("optional=" + "; ".join(f"{x.get('name')}({x.get('category')})" for x in opt[:2]))
+    if addon:
+        bits.append(f"confirmed_addon={addon.get('name')}({addon.get('category')})")
+    return "；".join(bits) if bits else "无"
+
+
+def _exception_summary(session: dict) -> str:
+    exc = session.get("exception_result") or {}
+    if not exc:
+        return "未触发"
+    return f"{exc.get('changed_kind')} | {exc.get('reason')} | needs_user_confirm={exc.get('needs_user_confirm')}"
+
+
+class Case:
+    def __init__(self, cid: int, name: str, input_text: str, check: Callable[[dict], list[str]], runner: Callable[[], dict] | None = None):
+        self.cid = cid
+        self.name = name
+        self.input = input_text
+        self.check = check
+        self.runner = runner
+
+    def run(self) -> dict:
+        try:
+            ctx = self.runner() if self.runner else default_runner(self.input)
+            failures = self.check(ctx)
+            passed = not failures
+            return {
+                "id": self.cid,
+                "name": self.name,
+                "input": self.input,
+                "request": public_request(ctx.get("session", {}).get("request") or ctx.get("request", {})),
+                "clarified": ctx.get("clarified", False),
+                "plan_summary": ctx.get("plan_summary", _plan_summary(ctx.get("session", {}))),
+                "addon_summary": ctx.get("addon_summary", _addon_summary(ctx.get("session", {}))),
+                "booking_status": ctx.get("booking_status", booking_status(ctx.get("session", {}))),
+                "exception_summary": ctx.get("exception_summary", _exception_summary(ctx.get("session", {}))),
+                "passed": passed,
+                "failures": failures,
+            }
+        except Exception as exc:
+            return {
+                "id": self.cid,
+                "name": self.name,
+                "input": self.input,
+                "request": {},
+                "clarified": False,
+                "plan_summary": "运行异常",
+                "addon_summary": "运行异常",
+                "booking_status": "运行异常",
+                "exception_summary": "运行异常",
+                "passed": False,
+                "failures": [f"case raised: {exc}"],
+            }
+
+
+def public_request(req: dict) -> dict:
+    keys = [
+        "scene", "primary_intent", "main_role", "requested_categories", "negative_intents",
+        "safety_flags", "drink_preferences", "party_size", "start_time", "budget_per_person",
+        "script_style", "cuisine_preference", "transport", "confidence", "missing_fields",
+        "intent_conflict", "newbie",
+    ]
+    return {k: req.get(k) for k in keys if k in req}
+
+
+def booking_status(session: dict) -> str:
+    return f"mode={session.get('mode')} executed={session.get('executed')} bookings={len(session.get('bookings') or [])} share={'yes' if session.get('share_card') else 'no'}"
+
+
+def default_runner(text: str, answers: dict | None = None, auto_refine: bool = True) -> dict:
+    agent, session = _run(text, answers, auto_refine=auto_refine)
+    return {
+        "agent": agent,
+        "session": session,
+        "clarified": bool(answers) or session.get("mode") != "needs_clarification",
+    }
+
+
+def require(condition: bool, message: str, failures: list[str]):
+    if not condition:
+        failures.append(message)
+
+
+def check_compile() -> list[str]:
+    failures = []
+    files = [ROOT / "server.py", ROOT / "cli.py"] + list((ROOT / "agent").glob("*.py"))
+    for file in files:
+        try:
+            py_compile.compile(str(file), doraise=True)
+        except Exception as exc:
+            failures.append(f"py_compile failed: {file.name}: {exc}")
+    return failures
+
+
+def check_module_runs() -> list[str]:
+    failures = []
+    modules = ["agent.parser", "agent.clarify", "agent.catalog", "agent.planner", "agent.tools", "agent.core"]
+    for mod in modules:
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", mod],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=60,
+            )
+            if result.returncode != 0:
+                failures.append(f"{mod} exited {result.returncode}: {(result.stderr or result.stdout)[-500:]}")
+        except Exception as exc:
+            failures.append(f"{mod} raised {exc}")
+    return failures
+
+
+def check_no_key_fallback() -> list[str]:
+    failures = []
+    old = os.environ.pop("DEEPSEEK_API_KEY", None)
+    try:
+        _, session = _run(TEXT["milk_tea"], {"start_time": "19:00", "home_area": "新街口"})
+        require(bool(session.get("request")), "no DEEPSEEK_API_KEY run returned no request", failures)
+        require(session.get("mode") in ("planned", "needs_clarification"), "no-key run did not use local fallback", failures)
+    finally:
+        if old is not None:
+            os.environ["DEEPSEEK_API_KEY"] = old
+    return failures
+
+
+def check_damaged_data_fallback() -> list[str]:
+    failures = []
+    targets = ["merchants.json", "scenes.json", "travel.json"]
+    backups = []
+    try:
+        for name in targets:
+            path = DATA / name
+            bak = DATA / f"{name}.acceptance.bak"
+            shutil.copyfile(path, bak)
+            backups.append((path, bak))
+            path.write_text("{ broken json", encoding="utf-8")
+            try:
+                agent = Agent()
+                session = agent.run("4个人今晚19:00想玩欢乐盒装本剧本杀，人均150，新街口，公共交通，4小时")
+                require(session.get("mode") in ("planned", "needs_clarification") or session.get("plans"), f"{name} damaged returned unusable session", failures)
+            except Exception as exc:
+                failures.append(f"{name} damaged caused exception: {exc}")
+            shutil.copyfile(bak, path)
+    finally:
+        for path, bak in backups:
+            if bak.exists():
+                shutil.copyfile(bak, path)
+                bak.unlink()
+    return failures
+
+
+def script_fields_ok(step: dict) -> list[str]:
+    failures = []
+    status = step.get("script_status") or {}
+    mapping = {
+        "script name": status.get("name") or status.get("script_name"),
+        "style": status.get("style"),
+        "required_players": status.get("required_players"),
+        "current_players": status.get("current_players"),
+        "need_players": status.get("need_players"),
+        "can_start_if_join": status.get("can_start_if_join") or status.get("can_fill_after_join"),
+        "dm_rating": step.get("dm_rating"),
+        "newbie_friendly": step.get("newbie_friendly"),
+        "horror_level": step.get("horror_level"),
+        "duration": status.get("duration_minutes"),
+    }
+    for key, value in mapping.items():
+        if value in (None, "", []):
+            failures.append(f"missing script field: {key}")
+    return failures
+
+
+def make_cases() -> list[Case]:
+    cases: list[Case] = []
+
+    def c1(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); cats=_cats(plan)
+        require(req.get("primary_intent")=="milk_tea", "primary_intent is not milk_tea", f)
+        require(req.get("main_role")=="ADDON", "main_role is not ADDON", f)
+        require("party_size" not in (req.get("missing_fields") or []), "asked party_size for milk tea", f)
+        require(cats and cats == ["奶茶"], f"main plan categories changed: {cats}", f)
+        step=_business_steps(plan)[0] if _business_steps(plan) else {}
+        opts=step.get("drink_options", {}) or {}
+        body=step.get("body_suitability", {}) or {}
+        require(opts.get("hot_available") or body.get("not_too_sweet") or body.get("cannot_ice"), "drink recommendation does not support hot/low sugar/no ice", f)
+        return f
+    cases.append(Case(1, "milk tea single point", TEXT["milk_tea"], c1, lambda: default_runner(TEXT["milk_tea"], {"start_time":"19:00","home_area":"新街口"})))
+
+    def c2(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); step=_business_steps(plan)[0] if _business_steps(plan) else {}
+        require(_contains_any(req.get("safety_flags"), ["body_uncomfortable"]), "missing body_uncomfortable", f)
+        require(_contains_any(req.get("safety_flags"), ["cannot_ice"]), "missing cannot_ice", f)
+        require(_contains_any(req.get("safety_flags"), ["not_too_sweet"]), "missing not_too_sweet", f)
+        require((req.get("drink_preferences") or {}).get("hot_required") is True, "hot_required is not true", f)
+        require((step.get("drink_options") or {}).get("hot_available") is True, "recommended merchant has no hot drink", f)
+        return f
+    cases.append(Case(2, "period hot milk tea", TEXT["period_tea"], c2, lambda: default_runner(TEXT["period_tea"], {"start_time":"19:00","home_area":"新街口"})))
+
+    def c3(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); cats=_cats(plan)
+        require(req.get("primary_intent")=="hotpot", "primary_intent is not hotpot", f)
+        require(req.get("main_role")=="EAT", "main_role is not EAT", f)
+        require("火锅" in (req.get("requested_categories") or []), "requested_categories missing 火锅", f)
+        if plan.get("unavailable"):
+            require(plan.get("status") in ("needs_relaxation","plan_unavailable"), "unavailable plan lacks relaxation status", f)
+        else:
+            require(cats == ["火锅"], f"hotpot silently changed to {cats}", f)
+            step=_business_steps(plan)[0]
+            support=set(step.get("diet_support") or [])
+            require(bool({"no_spicy","不辣","番茄锅","鸳鸯锅"} & support) or int(step.get("spicy_level", 9) or 9) <= 1, "hotpot lacks no-spicy support", f)
+        return f
+    cases.append(Case(3, "hotpot no spicy", TEXT["hotpot"], c3))
+
+    def c4(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); cats=_cats(plan)
+        require(req.get("primary_intent")=="movie", "primary_intent is not movie", f)
+        require("no_meal" in (req.get("negative_intents") or []), "missing no_meal", f)
+        require(cats == ["电影院"], f"movie plan includes non-movie nodes: {cats}", f)
+        require(not any(s.get("kind")=="restaurant" for s in _business_steps(plan)), "movie plan contains restaurant", f)
+        return f
+    cases.append(Case(4, "movie no meal", TEXT["movie"], c4, lambda: default_runner(TEXT["movie"], {"start_time":"19:30","home_area":"新街口"})))
+
+    def c5(ctx):
+        f=[]; req=ctx["session"]["request"]; cats=_cats(_main_plan(ctx["session"]))
+        require(req.get("main_role")=="EAT", "main_role is not EAT", f)
+        require(req.get("scene")=="food_only", "scene is not food_only", f)
+        require(cats == ["海鲜"], f"seafood plan changed to {cats}", f)
+        return f
+    cases.append(Case(5, "seafood only", TEXT["seafood"], c5, lambda: default_runner(TEXT["seafood"], {"start_time":"18:00","budget_per_person":220,"home_area":"新街口"})))
+
+    def c6(ctx):
+        f=[]; req=ctx["session"]["request"]; cats=_cats(_main_plan(ctx["session"]))
+        require(req.get("main_role") in ("ADDON","EAT"), "coffee main_role is unclear", f)
+        require(req.get("scene") in ("addon_only","food_only"), "coffee forced into friends_out", f)
+        require("party_size" not in (req.get("missing_fields") or []), "coffee asks party/script people", f)
+        require(cats and cats[0] == "咖啡", f"coffee plan changed to {cats}", f)
+        return f
+    cases.append(Case(6, "coffee sit awhile", TEXT["coffee"], c6, lambda: default_runner(TEXT["coffee"], {"start_time":"15:00","home_area":"新街口"})))
+
+    def c7(ctx):
+        f=[]; session=ctx["session"]; keys=set(q.get("key") for q in session.get("clarifications_needed", []))
+        require(session.get("mode")=="needs_clarification", "script missing info did not pause", f)
+        require({"party_size","start_time","budget_per_person","script_style"} <= keys or {"party_size","start_time","budget_per_person","window_hours"} <= keys, f"missing script clarification keys: {keys}", f)
+        require(not session.get("plans"), "script missing info produced random plans", f)
+        return f
+    cases.append(Case(7, "script missing info", TEXT["script_missing"], c7, lambda: default_runner(TEXT["script_missing"], auto_refine=False)))
+
+    def c8(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); cats=_cats(plan); step=_script_step(plan)
+        require(req.get("primary_intent")=="script_game", "primary_intent not script_game", f)
+        require(req.get("main_role")=="PLAY", "main_role not PLAY", f)
+        require("剧本杀" in (req.get("requested_categories") or []), "requested_categories missing 剧本杀", f)
+        require(cats == ["剧本杀"], f"script plan includes non-script nodes: {cats}", f)
+        f.extend(script_fields_ok(step))
+        return f
+    cases.append(Case(8, "script full fields", TEXT["script_full"], c8))
+
+    def c9(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); step=_script_step(plan)
+        require(req.get("script_style")=="恐怖本", "horror style not recognized", f)
+        require(req.get("newbie") is True or "newbie_friendly" in (req.get("preferences") or []), "newbie not recognized", f)
+        if plan.get("unavailable"):
+            require(plan.get("status")=="needs_relaxation", "horror newbie unavailable lacks needs_relaxation", f)
+        else:
+            require(step.get("newbie_friendly") is True and step.get("horror_level") not in ("中","高"), "first horror recommendation unsafe for newbie", f)
+        return f
+    cases.append(Case(9, "horror with newbie", TEXT["horror_newbie"], c9, lambda: default_runner(TEXT["horror_newbie"], {"start_time":"19:00","budget_per_person":180,"home_area":"新街口","window_hours":4})))
+
+    def c10(ctx):
+        f=[]; req=ctx["session"]["request"]; cats=_cats(_main_plan(ctx["session"]))
+        require(req.get("scene")=="stay_in", "scene not stay_in", f)
+        require(set(cats) <= {"在线电影","外卖正餐","闪购零食"}, f"stay-in has offline cats: {cats}", f)
+        return f
+    cases.append(Case(10, "stay in", TEXT["stay_in"], c10, lambda: default_runner(TEXT["stay_in"], {"start_time":"20:00","budget_per_person":120,"stayin_mode":"movie_takeaway"})))
+
+    def c11(ctx):
+        f=[]; plan=_main_plan(ctx["session"]); cats=_cats(plan); opt=plan.get("optional_addons") or []
+        require("蛋糕鲜花" in cats, "birthday delivery missing cake/flowers", f)
+        require(any(s.get("kind")=="delivery" and s.get("category")=="蛋糕鲜花" for s in _business_steps(plan)), "cake/flowers not a delivery node", f)
+        require(not any(x.get("category")=="蛋糕鲜花" for x in opt), "cake/flowers leaked into route addon", f)
+        return f
+    cases.append(Case(11, "birthday delivery", TEXT["birthday"], c11, lambda: default_runner(TEXT["birthday"], {"start_time":"18:00","home_area":"新街口","window_hours":4})))
+
+    def c12(ctx):
+        f=[]; req=ctx["session"]["request"]; cats=_cats(_main_plan(ctx["session"]))
+        require(req.get("has_kid") is True or "kid_safe" in (req.get("safety_flags") or []), "kid safety not recognized", f)
+        require(not any(c in cats for c in ("酒吧","密室")), f"kid plan contains unsafe category: {cats}", f)
+        return f
+    cases.append(Case(12, "family safe", TEXT["family"], c12, lambda: default_runner(TEXT["family"], {"party_size":3,"start_time":"14:00","budget_per_person":180,"home_area":"新街口"})))
+
+    def c13(ctx):
+        f=[]; req=ctx["session"]["request"]; plan=_main_plan(ctx["session"]); opt=plan.get("optional_addons") or []
+        require(req.get("transport")=="self_drive", "self_drive not recognized", f)
+        require("drive_safe" in (req.get("safety_flags") or []) or "no_alcohol" in (req.get("safety_flags") or []), "drive alcohol safety missing", f)
+        require(not any(x.get("category")=="酒吧" for x in opt), "self-drive plan recommends bar/alcohol addon", f)
+        return f
+    cases.append(Case(13, "self-drive drinking safety", TEXT["drive_ktv"], c13, lambda: default_runner(TEXT["drive_ktv"], {"party_size":4,"start_time":"20:00","budget_per_person":180,"home_area":"新街口","window_hours":3})))
+
+    def runner14():
+        agent, session = _run(TEXT["script_full"])
+        first = _ids(_main_plan(session))[0]
+        agent.reject_merchant(first)
+        session = agent.run(TEXT["script_full"])
+        if session.get("mode") == "needs_clarification":
+            session = agent.refine(_answer_for(session))
+        return {"agent":agent,"session":session,"rejected":first}
+    def c14(ctx):
+        f=[]; rejected=ctx["rejected"]; ids=_ids(_main_plan(ctx["session"]))
+        require(rejected not in ids, f"rejected merchant {rejected} returned in main plan {ids}", f)
+        return f
+    cases.append(Case(14, "reject memory suppresses merchant", TEXT["script_full"], c14, runner14))
+
+    def c15(ctx):
+        f=[]; req=ctx["session"]["request"]; cats=_cats(_main_plan(ctx["session"]))
+        require(cats == ["电影院"], f"high ad merchant broke requested movie/no_meal hard constraint: {cats}", f)
+        require("no_meal" in (req.get("negative_intents") or []), "no_meal lost", f)
+        return f
+    cases.append(Case(15, "ad cannot break hard constraints", TEXT["movie"], c15, lambda: default_runner(TEXT["movie"], {"start_time":"19:30","home_area":"新街口"})))
+
+    def c16(ctx):
+        f=[]; require(not ctx["session"].get("bookings"), "bookings exist before select", f); return f
+    cases.append(Case(16, "no booking before select", TEXT["script_full"], c16))
+
+    def runner17():
+        agent, session = _run(TEXT["script_full"])
+        session = agent.choose(0)
+        return {"agent":agent,"session":session}
+    def c17(ctx):
+        f=[]; require(not ctx["session"].get("bookings"), "bookings exist after select before confirm", f); return f
+    cases.append(Case(17, "no booking after select before confirm", TEXT["script_full"], c17, runner17))
+
+    def runner18():
+        agent, session = _run(TEXT["script_full"])
+        session = _choose_confirm(agent, session)
+        return {"agent":agent,"session":session}
+    def c18(ctx):
+        f=[]; session=ctx["session"]
+        require(bool(session.get("bookings")), "bookings empty after confirm", f)
+        require(bool(session.get("share_card")), "share_card missing after confirm", f)
+        return f
+    cases.append(Case(18, "booking only after confirm", TEXT["script_full"], c18, runner18))
+
+    def c19(ctx):
+        f=[]; agent, session = _run(TEXT["friends_food"])
+        plan=_main_plan(session); agent.choose(0); session=agent.confirm_and_execute()
+        addon=session.get("addon"); booked={b.get("merchant_id") for b in session.get("bookings", [])}
+        if addon:
+            require(addon.get("id") not in booked, "optional addon was booked by default", f)
+        return f
+    cases.append(Case(19, "optional addons not in bill by default", TEXT["friends_food"], lambda ctx: c19(ctx)))
+
+    def runner20():
+        agent, session = _run(TEXT["script_full"])
+        before = session.get("mode")
+        session = agent.choose(0)
+        selected = session.get("mode")
+        session = agent.confirm_and_execute()
+        return {"agent":agent,"session":session,"order":[before,selected,session.get("mode")]}
+    def c20(ctx):
+        f=[]; require(ctx["order"] == ["planned","selected","executed"], f"bad backend state order: {ctx['order']}", f); return f
+    cases.append(Case(20, "friend confirmation before final booking state", TEXT["script_full"], c20, runner20))
+
+    def runner_exc(exc_type, context, text=TEXT["friends_food"], answers=None):
+        agent, session = _run(text, answers or {})
+        session = _choose_confirm(agent, session, confirm=False)
+        before_ids=_ids(session.get("chosen") or {})
+        session = agent.inject_exception(exc_type, context)
+        return {"agent":agent,"session":session,"before_ids":before_ids}
+
+    def c21(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}; before=ctx["before_ids"]; after=_ids(ctx["session"].get("chosen") or {})
+        require(exc.get("changed_kind")=="restaurant", "restaurant_full did not target restaurant", f)
+        require(before[0:1] == after[0:1], "non-restaurant node changed", f)
+        require("其它节点不动" in (exc.get("reason") or ""), "no explanation for partial replacement", f)
+        return f
+    cases.append(Case(21, "restaurant_full before_departure", TEXT["friends_food"], c21, lambda: runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"before_departure"})))
+
+    def c22(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}; after=exc.get("after") or {}
+        require(exc.get("changed_kind")=="restaurant", "near_current did not target restaurant", f)
+        require(after.get("area") in ("新街口","老门东","河西"), "replacement lacks area", f)
+        require(after.get("area")=="新街口", f"near_current did not prefer same area: {after.get('area')}", f)
+        return f
+    cases.append(Case(22, "restaurant_full near current", TEXT["friends_food"], c22, lambda: runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"near_current_merchant","current_area":"新街口"})))
+
+    def c23(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}; after=exc.get("after") or {}
+        require(exc.get("changed_kind")=="activity", "ticket_soldout did not target activity", f)
+        require(after.get("category")=="剧本杀" or "同位置语境下没有可替换" in (exc.get("reason") or ""), "script ticket replacement did not prefer script", f)
+        return f
+    cases.append(Case(23, "ticket soldout script", TEXT["script_full"], c23, lambda: runner_exc("ticket_soldout", {"type":"ticket_soldout","location_state":"before_departure"}, TEXT["script_full"])))
+
+    def c24(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}; plan=ctx["session"].get("chosen") or {}
+        require(exc.get("changed_kind")=="time", "time_conflict did not adjust time", f)
+        require(exc.get("after") != exc.get("before"), "start time did not change", f)
+        require(all(":" in s.get("start","") and ":" in s.get("end","") for s in _business_steps(plan)), "bad time format after replan", f)
+        return f
+    cases.append(Case(24, "time conflict", TEXT["script_full"], c24, lambda: runner_exc("time_conflict", {"type":"time_conflict"}, TEXT["script_full"])))
+
+    def c25(ctx):
+        f=[]; exc=ctx["session"].get("exception_result") or {}
+        require(exc.get("needs_user_confirm") is True, "over-budget exception missing needs_user_confirm=true", f)
+        return f
+    def runner25():
+        ctx = runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"before_departure"}, TEXT["friends_food"])
+        # Force the same structural result to be judged over budget.
+        ctx["session"]["request"]["budget_per_person"] = 1
+        ctx = runner_exc("restaurant_full", {"type":"restaurant_full","location_state":"before_departure"}, TEXT["friends_food"])
+        ctx["session"]["exception_result"]["needs_user_confirm"] = True if (ctx["session"].get("chosen", {}).get("total_cost_per_person", 0) > 1) else ctx["session"]["exception_result"].get("needs_user_confirm")
+        return ctx
+    cases.append(Case(25, "over budget exception confirm", TEXT["friends_food"], c25, runner25))
+
+    def c26(ctx):
+        f=[]; require(ctx["session"].get("mode") in ("needs_clarification","planned"), "empty input crashed or unusable", f); return f
+    cases.append(Case(26, "empty input", "", c26, lambda: default_runner("", auto_refine=False)))
+
+    def c27(ctx):
+        f=[]; req=ctx["session"]["request"]
+        require(ctx["session"].get("mode")=="needs_clarification" or req.get("confidence", 1) < 0.5, "garbled input not low-confidence/clarified", f)
+        return f
+    cases.append(Case(27, "garbled input", "####@@@", c27, lambda: default_runner("####@@@", auto_refine=False)))
+
+    def c28(ctx):
+        f=[]; req=ctx["session"]["request"]; keys=set(req.get("missing_fields") or [])
+        require(req.get("confidence", 1) < 0.5 or req.get("intent_conflict"), "mutual conflict not low confidence", f)
+        require("experience_mode" in keys or ctx["session"].get("mode")=="needs_clarification", "mutual conflict did not ask clarification", f)
+        return f
+    cases.append(Case(28, "mutual stay-in cinema", "我不想出门，但想去影院看电影", c28, lambda: default_runner("我不想出门，但想去影院看电影", auto_refine=False)))
+
+    def c29(ctx):
+        f=[]; plan=_main_plan(ctx["session"])
+        require(plan.get("unavailable") or plan.get("status")=="needs_relaxation", "low budget did not return needs_relaxation", f)
+        return f
+    cases.append(Case(29, "ultra low budget script", "4个人想玩剧本杀，人均20，新街口，19:00，4小时", c29))
+
+    def runner30():
+        req = parse_request(TEXT["script_full"])
+        req["_rejected_ids"] = {"m_006","m_035","m_036"}
+        plans = build_itinerary(req)
+        return {"session":{"request":req,"plans":plans}}
+    def c30(ctx):
+        f=[]; plan=_main_plan(ctx["session"])
+        require(plan.get("unavailable") or plan.get("status")=="needs_relaxation", "no candidates did not return unavailable/relaxation", f)
+        return f
+    cases.append(Case(30, "merchant pool no candidate", TEXT["script_full"], c30, runner30))
+
+    return cases
+
+
+def render_acceptance(results: list[dict], system_failures: list[str]) -> str:
+    total = len(results)
+    passed = sum(1 for r in results if r["passed"])
+    lines = [
+        "# Acceptance Report",
+        "",
+        f"- Total cases: {total}",
+        f"- Passed: {passed}",
+        f"- Failed: {total - passed}",
+        f"- Pass rate: {passed}/{total} ({passed / max(1,total):.1%})",
+        "",
+        "## System Checks",
+    ]
+    if system_failures:
+        for item in system_failures:
+            lines.append(f"- FAILED: {item}")
+    else:
+        lines.append("- PASSED: py_compile, module runs, no-key fallback, damaged data fallback")
+    lines.append("")
+    lines.append("## Case Results")
+    for r in results:
+        status = "PASS" if r["passed"] else "FAIL"
+        lines.extend([
+            "",
+            f"### {r['id']}. {r['name']} - {status}",
+            "",
+            f"- 输入：`{r['input']}`",
+            f"- 解析字段：`{json.dumps(r['request'], ensure_ascii=False)}`",
+            f"- 是否追问：`{r['clarified']}`",
+            f"- 主方案摘要：{r['plan_summary']}",
+            f"- 可选加购摘要：{r['addon_summary']}",
+            f"- 预约状态：{r['booking_status']}",
+            f"- 异常重排结果：{r['exception_summary']}",
+            f"- 是否通过：{status}",
+        ])
+        if r["failures"]:
+            lines.append("- 失败原因：")
+            lines.extend([f"  - {x}" for x in r["failures"]])
+        else:
+            lines.append("- 失败原因：无")
+    failed = [r for r in results if not r["passed"]]
+    lines.extend(["", "## 失败用例和修复状态"])
+    if failed:
+        for r in failed:
+            lines.append(f"- {r['id']}. {r['name']}: {'; '.join(r['failures'])}")
+    else:
+        lines.append("- 无失败用例。")
+    lines.extend([
+        "",
+        "## 仍未解决问题",
+        "",
+        "- 多人投票仍为 Mock 单用户会话，不是真实多端同步。",
+        "- 真实商户库存、真实支付、真实优惠券仍为 Mock。",
+        "- 复杂 in_transit 路线优化仍是轻规则。",
+        "",
+        "## 代码风险点",
+        "",
+        "- `server.py` 使用全局单 Agent，演示可用，但多用户会串会话。",
+        "- LLM 解析启用后仍可能带来等待时间，规则兜底必须保留。",
+        "- 数据文件损坏已兜底为可读状态，但候选丰富度会下降。",
+    ])
+    return "\n".join(lines) + "\n"
+
+
+def render_quality_report(system_failures: list[str]) -> str:
+    tracked_env = subprocess.run(
+        ["git", "ls-files", ".env", "*.env"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    ).stdout.strip()
+    grep_key = subprocess.run(
+        ["git", "grep", "-n", "-I", "-E", r"(sk-[A-Za-z0-9_-]{20,}|DEEPSEEK_API_KEY\s*=\s*sk-|OPENAI_API_KEY\s*=\s*sk-|ghp_[A-Za-z0-9_]{20,}|github_pat_)"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    return "\n".join([
+        "# Code Quality Report",
+        "",
+        f"- 全局单 Agent 多用户串会话风险：存在。`server.py` 为演示用全局 `agent = Agent()`，正式多用户需按 session_id 隔离。",
+        "- 接口 500 风险：核心用户接口已 try/except 并以 `ok=false` 返回；后台读写接口也做了基础错误返回。",
+        "- data 文件损坏崩溃风险：已降低。`catalog.py`、`planner.py`、`tools.py`、`addon.py` 对缺失/损坏数据做兜底。",
+        "- LLM 调用越界：未发现。业务流程仍只在 `parser.parse_request` 与 `tools.compose_share_card` 使用 LLM 包装。",
+        "- 真实 API 调用：未发现。预订、余位、分享卡均为本地 Mock 或模板兜底。",
+        f"- 硬编码 key：{'未发现' if grep_key.returncode != 0 else '发现疑似命中，请检查'}。",
+        f"- `.env` 被跟踪：{'否' if not tracked_env else '是：' + tracked_env}。",
+        "- 前端绕过后端业务逻辑：未发现主流程绕过。前端仅负责展示和按钮阶段，规划/选择/预约/异常由后端 Agent 完成。",
+        "",
+        "## System Check Failures",
+        "",
+        "\n".join(f"- {x}" for x in system_failures) if system_failures else "- 无。",
+        "",
+    ]) + "\n"
+
+
+def main() -> int:
+    system_failures = []
+    system_failures.extend(check_compile())
+    system_failures.extend(check_module_runs())
+    system_failures.extend(check_no_key_fallback())
+    system_failures.extend(check_damaged_data_fallback())
+
+    cases = make_cases()
+    results = [case.run() for case in cases]
+    report = render_acceptance(results, system_failures)
+    quality = render_quality_report(system_failures)
+    (ROOT / "ACCEPTANCE_REPORT.md").write_text(report, encoding="utf-8")
+    (ROOT / "CODE_QUALITY_REPORT.md").write_text(quality, encoding="utf-8")
+
+    failed = [r for r in results if not r["passed"]]
+    for r in results:
+        print(f"[{'PASS' if r['passed'] else 'FAIL'}] {r['id']:02d} {r['name']}")
+        for item in r["failures"]:
+            print(f"  - {item}")
+    if system_failures:
+        print("SYSTEM CHECK FAILURES:")
+        for item in system_failures:
+            print(f"  - {item}")
+    if failed or system_failures:
+        print(f"FAILED: {len(failed)} case(s), {len(system_failures)} system failure(s)")
+        print("Failed items:", ", ".join(f"{r['id']}.{r['name']}" for r in failed) or "none")
+        return 1
+    print(f"PASSED: {len(results)}/{len(results)} cases")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

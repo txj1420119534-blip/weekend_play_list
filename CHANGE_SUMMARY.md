@@ -1,5 +1,58 @@
 # Change Summary
 
+## Qualification Hardening: Acceptance Scenarios and Backend Fixes
+
+### 修改文件列表
+
+- `acceptance_check.py`
+- `agent/semantic.py`
+- `agent/parser.py`
+- `agent/clarify.py`
+- `agent/catalog.py`
+- `agent/planner.py`
+- `agent/tools.py`
+- `agent/addon.py`
+- `agent/core.py`
+- `server.py`
+- `ACCEPTANCE_REPORT.md`
+- `CODE_QUALITY_REPORT.md`
+- `CHANGE_SUMMARY.md`
+
+### 每个文件改了什么
+
+- `acceptance_check.py`：新增可直接运行的 30 条参赛资格验收脚本，直接调用 Agent 内核，不依赖浏览器和真实外部 API；输出每条用例的输入、解析字段、追问、主方案、可选加购、预约状态、异常重排和失败原因。
+- `agent/semantic.py`：补充欢乐本、盒装本、恐怖本、新手、自驾后想喝酒等语义词条，让规则兜底能覆盖更多真实用户说法。
+- `agent/parser.py`：补充 `primary_intent`、`main_role`、`requested_categories`、`negative_intents`、`safety_flags`、`drink_preferences`、`confidence`、`missing_fields` 的稳定识别；处理宅家和去影院互斥输入；没有 API key 时仍可规则兜底。
+- `agent/clarify.py`：对低置信度和互斥输入先追问，例如“宅家在线看，还是出门去影院”，避免继续错误推荐。
+- `agent/catalog.py`：增强数据损坏兜底；广告权重只影响软排序，不能突破用户拒绝、忌口、亲子、自驾安全、点名品类等硬约束；恐怖本遇到新手时过滤高风险候选。
+- `agent/planner.py`：把饮品、忌口、餐饮、剧本杀等业务字段带入 plan step；明确品类无候选时返回 `needs_relaxation`；异常重排支持位置语境并只替换坏节点；餐厅满座救援会放宽非用户显式点名的软菜系偏好。
+- `agent/tools.py`：增强数据读取容错，数据缺失或损坏时不直接崩溃。
+- `agent/addon.py`：增强商户数据读取容错，缺失数据时跳过可选加购。
+- `agent/core.py`：处理互斥追问后的 request 合并，保持选择、投票、最终预约、账单和分享卡状态顺序。
+- `server.py`：后台商户读取增加错误返回，避免数据文件异常直接 500。
+- `ACCEPTANCE_REPORT.md`：记录 30 条验收用例逐条结果，最终通过率 30/30。
+- `CODE_QUALITY_REPORT.md`：记录代码质量、安全、数据损坏、LLM 调用边界和多用户串会话风险。
+
+### 30 个验收用例结果
+
+- 通过率：30/30 (100.0%)
+- 系统检查：`py_compile`、模块单跑、无 `DEEPSEEK_API_KEY` 兜底、数据文件损坏兜底均通过。
+- 失败用例：无。
+
+### 仍未解决的问题
+
+- `server.py` 仍然使用全局单 Agent，正式多用户环境需要按 session 隔离。
+- 好友投票、真实预约、真实库存、真实支付和优惠券仍是 Mock。
+- 复杂 `in_transit` 路线优化仍是轻规则，不是真实地图规划。
+
+### 最可能出 bug 的 5 个地方
+
+1. DeepSeek 接入后返回奇异 JSON 时，规则兜底虽保留，但语义字段可能需要继续校验。
+2. 数据 JSON 被人工编辑时，字段类型不一致仍可能降低推荐质量。
+3. 全局 Agent 在多人同时访问时可能串会话。
+4. 异常重排目前只做轻量位置语境，复杂路线仍可能不够自然。
+5. 前端如果绕过后端状态顺序直接调用接口，仍需更严格的服务端状态机保护。
+
 ## Sprint 2: Demo UI and Flow Polish
 
 ### 修改文件列表

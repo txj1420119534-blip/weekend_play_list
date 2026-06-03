@@ -15,8 +15,21 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 def _load_json(filename: str):
     path = os.path.join(DATA_DIR, filename)
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        if filename == "scenes.json":
+            return {
+                "friends_out": {"label": "兜底朋友局", "slots": [{"role": "PLAY", "title": "先去玩"}]},
+                "play_only": {"label": "兜底活动局", "slots": [{"role": "PLAY", "title": "先把活动订好"}]},
+                "food_only": {"label": "兜底饭局", "slots": [{"role": "EAT", "title": "先把餐厅订好"}]},
+                "addon_only": {"label": "兜底单点", "slots": [{"role": "ADDON", "title": "喝点什么"}]},
+                "stay_in": {"label": "兜底宅家", "slots": [{"role": "STAYIN", "title": "宅家安排"}]},
+            }
+        if filename == "travel.json":
+            return {}
+        return []
 
 
 def _travel(from_area: str, to_area: str) -> dict:
@@ -41,6 +54,20 @@ def _to_min(t: str) -> int:
 def _to_str(m: int) -> str:
     m = max(0, round(m))
     return f"{m // 60 % 24:02d}:{m % 60:02d}"
+
+
+def _merchant_business_fields(merchant: dict) -> dict:
+    """Expose category-specific merchant data on plan steps for UI and tests."""
+    return {
+        "cuisine_tags": merchant.get("cuisine_tags", []),
+        "spicy_level": merchant.get("spicy_level"),
+        "diet_support": merchant.get("diet_support", []),
+        "private_room": merchant.get("private_room"),
+        "table_sizes": merchant.get("table_sizes", []),
+        "signature_dishes": merchant.get("signature_dishes", []),
+        "drink_options": merchant.get("drink_options", {}),
+        "body_suitability": merchant.get("body_suitability", {}),
+    }
 
 
 def _want_list(want) -> list[str]:
@@ -227,6 +254,9 @@ def build_itinerary(request: dict, logbook=None) -> list[dict]:
     scene = request.get("scene", "friends_out")
     scenes = _load_json("scenes.json")
     scene_def = scenes.get(scene, scenes.get("friends_out"))
+    if not scene_def:
+        return [_unavailable_plan(request, request.get("main_role", "PLAY"), request.get("requested_categories", []),
+                                  "场景模板不可用，需要检查数据文件或放宽条件")]
 
     if logbook:
         logbook.add("排方案", "running",
@@ -374,6 +404,7 @@ def build_itinerary(request: dict, logbook=None) -> list[dict]:
                 "ad_bid": merchant.get("ad_bid", 0),
                 "recommended_dishes": merchant.get("recommended_dishes", []),
                 "flags": merchant.get("flags", {}),
+                **_merchant_business_fields(merchant),
                 "script_styles": merchant.get("script_styles", []),
                 "player_counts": merchant.get("player_counts", []),
                 "open_tables": merchant.get("open_tables", []),
@@ -607,6 +638,8 @@ def _replan_one_node(chosen: dict, request: dict, steps: list, kind: str, contex
     elif location_state == "in_transit" and anchor_area:
         local_request["home_area"] = anchor_area
         local_request["distance_tolerance"] = "nearby"
+    if role == "EAT" and not role_cats:
+        local_request.pop("cuisine_preference", None)
     candidates = search_merchants(role, local_request, logbook=None,
                                   want=role_cats if role_cats else None,
                                   exclude_ids=rejected)
@@ -654,6 +687,7 @@ def _replan_one_node(chosen: dict, request: dict, steps: list, kind: str, contex
         "ad_bid": new_m.get("ad_bid", 0),
         "recommended_dishes": new_m.get("recommended_dishes", []),
         "flags": new_m.get("flags", {}),
+        **_merchant_business_fields(new_m),
         "script_styles": new_m.get("script_styles", []),
         "player_counts": new_m.get("player_counts", []),
         "open_tables": new_m.get("open_tables", []),
@@ -1045,7 +1079,7 @@ if __name__ == "__main__":
 
     print("\n\n=== 测试 replan: 餐厅满座 ===")
     session = {"chosen": plans[0], "request": req}
-    result = replan(session, "restaurant_full", log)
+    result = replan(session, "restaurant_full", {"location_state": "before_departure"}, log)
     print(f"  {result['reason']}")
     print(f"  新人均 ¥{result['new_plan']['total_cost_per_person']}")
 

@@ -25,8 +25,13 @@ def suggest_addon(plan: dict, request: dict, logbook=None) -> dict | None:
         return None
 
     path = os.path.join(DATA_DIR, "merchants.json")
-    with open(path, "r", encoding="utf-8") as f:
-        merchants = json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            merchants = json.load(f)
+    except Exception:
+        if logbook:
+            logbook.add("增值推荐", "warning", "商户数据不可用，跳过顺路推荐")
+        return None
     route_addon_categories = {"奶茶", "咖啡", "甜品", "冰淇淋"}
     addons = [m for m in merchants if m["slot_role"] == "ADDON" and m.get("category") in route_addon_categories]
 

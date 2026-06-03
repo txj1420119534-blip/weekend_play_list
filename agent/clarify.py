@@ -146,6 +146,14 @@ QUESTION_BANK = {
             {"label": "都可以", "value": "relax_any"},
         ],
     },
+    "experience_mode": {
+        "question": "你更想哪种方式？",
+        "type": "chip",
+        "options": [
+            {"label": "宅家在线看", "value": "stay_in_online"},
+            {"label": "出门去影院", "value": "cinema_out"},
+        ],
+    },
 }
 
 
@@ -157,6 +165,9 @@ def decide_clarifications(text: str, request: dict, explicit_cats: list[dict], m
     roles = {c.get("role") for c in explicit_cats}
     cats = {c.get("category") for c in explicit_cats}
     intent_tags = set(request.get("intent_tags", []) or [])
+
+    if request.get("intent_conflict"):
+        return _materialize(["experience_mode"])
 
     is_script = "剧本杀" in cats or "script_game" in intent_tags
     is_heavy_play = is_script or any(c in cats for c in ("密室", "KTV"))

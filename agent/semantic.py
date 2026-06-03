@@ -20,7 +20,7 @@ INTENT_LEXICON = {
         "又菜又爱玩", "菜又爱玩", "菜但爱玩", "想玩", "玩点",
         "找点乐子", "消磨时间", "打发时间", "随便玩玩", "轻松玩",
     ],
-    "script_game": ["剧本杀", "打本", "约本", "推本", "本子", "剧本", "沉浸本", "凶案本"],
+    "script_game": ["剧本杀", "打本", "约本", "推本", "本子", "剧本", "沉浸本", "凶案本", "恐怖本", "欢乐本", "盒装本"],
     "script_fun": ["欢乐本", "欢乐盒装", "欢乐盒装本", "搞笑本", "轻松本"],
     "script_reasoning": ["推理本", "硬核本", "硬核", "本格", "还原本"],
     "script_mechanism": ["机制本", "阵营本", "机制", "阵营"],
@@ -60,6 +60,8 @@ INTENT_LEXICON = {
     "not_too_sweet": ["不要太甜", "别太甜", "不太甜", "少糖", "低糖", "半糖", "三分糖", "无糖"],
     "body_uncomfortable": ["生理期", "姨妈", "来例假", "肚子不舒服", "胃不舒服", "身体不舒服", "感冒"],
     "self_drive": ["自驾", "开车", "自己开车"],
+    "newbie": ["第一次玩", "新手", "有人第一次", "没玩过", "小白"],
+    "alcohol_request": ["喝酒", "小酒", "精酿", "啤酒", "酒吧", "喝点酒"],
 }
 
 
@@ -127,6 +129,8 @@ def analyze_semantics(text: str) -> dict:
         preferences.extend(["kid_friendly", "easy_pace"])
     if "light_food" in tag_set:
         preferences.append("light_food")
+    if "newbie" in tag_set:
+        preferences.append("newbie_friendly")
 
     hard_limits = []
     if "avoid_queue" in tag_set:
@@ -135,6 +139,8 @@ def analyze_semantics(text: str) -> dict:
         hard_limits.append("stay_near")
     if "family" in tag_set:
         hard_limits.append("kid_safe")
+    if "self_drive" in tag_set:
+        hard_limits.append("drive_safe")
 
     explicit_categories = []
     for tag in tags:

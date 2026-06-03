@@ -14,14 +14,22 @@ UNLIMITED = {"不限", "都可以", "随便", "无所谓", "没有偏好"}
 
 def _load_merchants() -> list[dict]:
     path = os.path.join(DATA_DIR, "merchants.json")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
 
 
 def _load_travel() -> dict:
     path = os.path.join(DATA_DIR, "travel.json")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
 
 def _travel_between(from_area: str, to_area: str) -> dict:
@@ -107,6 +115,10 @@ def search_merchants(
             counts = m.get("player_counts", [])
             if counts and party_size > max(counts):
                 continue
+            if script_style == "恐怖本" and request.get("newbie"):
+                horror_level = str(m.get("horror_level", "低"))
+                if not m.get("newbie_friendly", False) or horror_level in ("中", "高"):
+                    continue
         # 硬约束：预算（线上 STAYIN 不强卡预算线）
         if m.get("price", 0) > budget and slot_role != "STAYIN":
             continue
@@ -129,7 +141,9 @@ def search_merchants(
             continue
         tags_text = " ".join(m.get("review_tags", []) or []) + " " + m.get("category", "") + " " + " ".join(m.get("recommended_dishes", []) or [])
         flags = m.get("flags", {})
-        if "no_alcohol" in diet_limits and (flags.get("alcohol", False) or "啤酒" in tags_text or "有酒" in tags_text):
+        if ("no_alcohol" in diet_limits or "no_alcohol" in safety_flags or "drive_safe" in safety_flags) and (
+            flags.get("alcohol", False) or "啤酒" in tags_text or "有酒" in tags_text or m.get("category") == "酒吧"
+        ):
             continue
         if "no_spicy" in diet_limits or "no_spicy" in safety_flags:
             support = set(m.get("diet_support", []) or [])
