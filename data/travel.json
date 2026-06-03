@@ -1,0 +1,15 @@
+{
+  "新街口->新街口": {"walk": 10, "taxi": 6, "metro": 12},
+  "新街口->老门东": {"walk": 42, "taxi": 14, "metro": 22},
+  "新街口->河西": {"walk": 85, "taxi": 24, "metro": 32},
+  "老门东->老门东": {"walk": 8, "taxi": 5, "metro": 10},
+  "老门东->河西": {"walk": 95, "taxi": 28, "metro": 36},
+  "河西->河西": {"walk": 12, "taxi": 6, "metro": 14},
+  "新街口->线上": {"walk": 0, "taxi": 0, "metro": 0},
+  "老门东->线上": {"walk": 0, "taxi": 0, "metro": 0},
+  "河西->线上": {"walk": 0, "taxi": 0, "metro": 0},
+  "线上->线上": {"walk": 0, "taxi": 0, "metro": 0},
+  "线上->新街口": {"walk": 0, "taxi": 0, "metro": 0},
+  "线上->老门东": {"walk": 0, "taxi": 0, "metro": 0},
+  "线上->河西": {"walk": 0, "taxi": 0, "metro": 0}
+}

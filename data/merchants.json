@@ -1,0 +1,1940 @@
+[
+  {
+    "id": "m_001",
+    "name": "城市影像展",
+    "category": "展览",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 48,
+    "duration_minutes": 90,
+    "rating": 4.7,
+    "review_count": 1280,
+    "review_tags": [
+      "出片",
+      "安静",
+      "布展用心",
+      "拍照"
+    ],
+    "review_snippet": "光线很适合拍照，逛下来很舒服。",
+    "image": "🖼️",
+    "open": "10:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "双人观展套票",
+      "price": 78,
+      "save": 18
+    },
+    "stock": 30,
+    "slots": [
+      "14:00",
+      "14:30",
+      "15:00",
+      "15:30"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 30000,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_002",
+    "name": "沉浸式光影展",
+    "category": "展览",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 78,
+    "duration_minutes": 90,
+    "rating": 4.8,
+    "review_count": 2100,
+    "review_tags": [
+      "网红",
+      "拍照",
+      "沉浸",
+      "出片"
+    ],
+    "review_snippet": "每个角落都能出片，朋友聚会首选。",
+    "image": "✨",
+    "open": "10:00",
+    "close": "22:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "双人光影套票",
+      "price": 128,
+      "save": 28
+    },
+    "stock": 25,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 5,
+    "ad_bid": 100000,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_003",
+    "name": "黑胶唱片馆",
+    "category": "展览",
+    "slot_role": "PLAY",
+    "area": "老门东",
+    "price": 28,
+    "duration_minutes": 70,
+    "rating": 4.6,
+    "review_count": 680,
+    "review_tags": [
+      "文艺",
+      "安静",
+      "怀旧"
+    ],
+    "review_snippet": "很适合文艺青年，氛围感十足。",
+    "image": "🎵",
+    "open": "10:00",
+    "close": "20:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 50,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_004",
+    "name": "陶艺手作课",
+    "category": "手作",
+    "slot_role": "PLAY",
+    "area": "老门东",
+    "price": 70,
+    "duration_minutes": 100,
+    "rating": 4.6,
+    "review_count": 520,
+    "review_tags": [
+      "手作",
+      "有趣",
+      "适合拍照",
+      "出片"
+    ],
+    "review_snippet": "做出来的杯子可以带走，很有成就感。",
+    "image": "🏺",
+    "open": "10:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "双人手作体验",
+      "price": 118,
+      "save": 22
+    },
+    "stock": 12,
+    "slots": [
+      "14:00",
+      "15:30",
+      "17:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_005",
+    "name": "屋顶花园市集",
+    "category": "市集",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 0,
+    "duration_minutes": 60,
+    "rating": 4.5,
+    "review_count": 890,
+    "review_tags": [
+      "免费",
+      "出片",
+      "有小吃",
+      "户外"
+    ],
+    "review_snippet": "周末市集很热闹，适合随便逛逛拍照。",
+    "image": "🎪",
+    "open": "10:00",
+    "close": "18:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "10:00",
+      "12:00",
+      "14:00",
+      "16:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_006",
+    "name": "城市剧本杀·迷雾剧场",
+    "category": "剧本杀",
+    "slot_role": "PLAY",
+    "area": "河西",
+    "price": 98,
+    "duration_minutes": 180,
+    "rating": 4.7,
+    "review_count": 1560,
+    "review_tags": [
+      "沉浸",
+      "烧脑",
+      "聚会"
+    ],
+    "review_snippet": "剧情很沉浸，4个人玩刚好。",
+    "script_styles": [
+      "欢乐本",
+      "推理本",
+      "机制本"
+    ],
+    "player_counts": [
+      4,
+      5,
+      6
+    ],
+    "open_tables": [
+      {
+        "name": "谁是卧底老板",
+        "style": "欢乐本",
+        "required_players": 5,
+        "current_players": 1,
+        "start": "14:30",
+        "deadline": "13:50",
+        "status": "assembling",
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 180
+      },
+      {
+        "name": "雾中来信",
+        "style": "推理本",
+        "required_players": 4,
+        "current_players": 0,
+        "start": "15:00",
+        "deadline": "14:20",
+        "status": "ready",
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 180
+      },
+      {
+        "name": "齿轮迷城",
+        "style": "机制本",
+        "required_players": 6,
+        "current_players": 2,
+        "start": "16:00",
+        "deadline": "15:20",
+        "status": "assembling",
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 180
+      }
+    ],
+    "image": "🎭",
+    "open": "12:00",
+    "close": "23:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "4人团购价",
+      "price": 340,
+      "save": 52
+    },
+    "stock": 8,
+    "slots": [
+      "14:00",
+      "15:00"
+    ],
+    "queue_minutes": 15,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": false
+    },
+    "recommended_dishes": [],
+    "difficulty": "中等",
+    "horror_level": "低",
+    "newbie_friendly": true,
+    "dm_rating": 4.7
+  },
+  {
+    "id": "m_007",
+    "name": "星空电影院",
+    "category": "电影院",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 45,
+    "duration_minutes": 120,
+    "rating": 4.4,
+    "review_count": 3200,
+    "review_tags": [
+      "经典",
+      "舒适",
+      "爆米花"
+    ],
+    "review_snippet": "座椅很舒服，适合休闲看场电影。",
+    "image": "🎬",
+    "open": "10:00",
+    "close": "23:00",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 60,
+    "slots": [
+      "14:30",
+      "15:00",
+      "17:30",
+      "19:00"
+    ],
+    "queue_minutes": 5,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_008",
+    "name": "密室逃脱·失落文明",
+    "category": "密室",
+    "slot_role": "PLAY",
+    "area": "河西",
+    "price": 88,
+    "duration_minutes": 90,
+    "rating": 4.8,
+    "review_count": 2800,
+    "review_tags": [
+      "刺激",
+      "烧脑",
+      "团队"
+    ],
+    "review_snippet": "机关设计精巧，4人合作刚刚好。",
+    "experience_styles": [
+      "解谜",
+      "微恐",
+      "团队合作"
+    ],
+    "player_counts": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "fallback_for": [
+      "剧本杀"
+    ],
+    "image": "🗝️",
+    "open": "13:00",
+    "close": "22:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "4人密室套票",
+      "price": 300,
+      "save": 52
+    },
+    "stock": 4,
+    "slots": [
+      "14:00",
+      "16:00",
+      "18:00"
+    ],
+    "queue_minutes": 20,
+    "ad_bid": 50000,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": false
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_009",
+    "name": "桌游吧·骰子空间",
+    "category": "桌游",
+    "slot_role": "PLAY",
+    "area": "老门东",
+    "price": 35,
+    "duration_minutes": 120,
+    "rating": 4.5,
+    "review_count": 460,
+    "review_tags": [
+      "桌游",
+      "聚会",
+      "轻松"
+    ],
+    "review_snippet": "游戏种类多，适合朋友聚会打发时间。",
+    "image": "🎲",
+    "open": "12:00",
+    "close": "23:00",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 20,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": true,
+      "kid_friendly": false
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_010",
+    "name": "KTV·麦霸天堂",
+    "category": "KTV",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 58,
+    "duration_minutes": 120,
+    "rating": 4.3,
+    "review_count": 1800,
+    "review_tags": [
+      "唱歌",
+      "聚会",
+      "音响好"
+    ],
+    "review_snippet": "音响效果不错，曲库也全。",
+    "image": "🎤",
+    "open": "12:00",
+    "close": "02:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "4小时欢唱套餐",
+      "price": 168,
+      "save": 64
+    },
+    "stock": 15,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": true,
+      "kid_friendly": false
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_011",
+    "name": "云端滑冰场",
+    "category": "运动",
+    "slot_role": "PLAY",
+    "area": "河西",
+    "price": 55,
+    "duration_minutes": 90,
+    "rating": 4.5,
+    "review_count": 740,
+    "review_tags": [
+      "运动",
+      "有趣",
+      "拍照",
+      "出片"
+    ],
+    "review_snippet": "冰面质量好，灯光很梦幻。",
+    "image": "⛸️",
+    "open": "10:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 18,
+    "slots": [
+      "14:00",
+      "15:30",
+      "17:00"
+    ],
+    "queue_minutes": 10,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true,
+      "spicy": false
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_012",
+    "name": "云朵亲子乐园",
+    "category": "亲子乐园",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 68,
+    "duration_minutes": 120,
+    "rating": 4.7,
+    "review_count": 2200,
+    "review_tags": [
+      "亲子",
+      "室内",
+      "安全"
+    ],
+    "review_snippet": "孩子玩得很开心，大人可以在旁边休息。",
+    "image": "🎠",
+    "open": "09:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "亲子套票(1大1小)",
+      "price": 98,
+      "save": 38
+    },
+    "stock": 25,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00"
+    ],
+    "queue_minutes": 5,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "family_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true,
+      "spicy": false
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_013",
+    "name": "南巷小馆",
+    "category": "融合菜",
+    "slot_role": "EAT",
+    "area": "新街口",
+    "price": 128,
+    "duration_minutes": 90,
+    "rating": 4.6,
+    "review_count": 3500,
+    "review_tags": [
+      "适合聚会",
+      "出片",
+      "可预约"
+    ],
+    "review_snippet": "环境很好，菜也精致，适合朋友聚餐。",
+    "image": "🥢",
+    "open": "11:00",
+    "close": "21:30",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "4人聚会套餐",
+      "price": 438,
+      "save": 74
+    },
+    "stock": 8,
+    "slots": [
+      "15:30",
+      "16:00",
+      "17:30",
+      "18:00",
+      "18:30",
+      "19:30",
+      "20:00"
+    ],
+    "queue_minutes": 15,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true,
+      "spicy": false
+    },
+    "recommended_dishes": [
+      "招牌红烧肉",
+      "清蒸鲈鱼"
+    ],
+    "cuisine_tags": [
+      "融合菜"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "招牌红烧肉",
+      "清蒸鲈鱼"
+    ]
+  },
+  {
+    "id": "m_014",
+    "name": "院子里",
+    "category": "江浙菜",
+    "slot_role": "EAT",
+    "area": "新街口",
+    "price": 98,
+    "duration_minutes": 90,
+    "rating": 4.7,
+    "review_count": 2800,
+    "review_tags": [
+      "安静",
+      "可预约",
+      "有清淡选项"
+    ],
+    "review_snippet": "院子里吃饭很有氛围，菜品清淡精致。",
+    "image": "🍱",
+    "open": "11:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 20,
+    "slots": [
+      "15:30",
+      "16:00",
+      "17:30",
+      "18:00",
+      "18:30",
+      "19:00"
+    ],
+    "queue_minutes": 5,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "桂花糯米藕",
+      "清炒时蔬"
+    ],
+    "cuisine_tags": [
+      "江浙菜"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "桂花糯米藕",
+      "清炒时蔬"
+    ]
+  },
+  {
+    "id": "m_015",
+    "name": "老门东面馆",
+    "category": "本地面食",
+    "slot_role": "EAT",
+    "area": "老门东",
+    "price": 38,
+    "duration_minutes": 40,
+    "rating": 4.3,
+    "review_count": 5200,
+    "review_tags": [
+      "实惠",
+      "本地",
+      "出餐快"
+    ],
+    "review_snippet": "面条劲道，价格实惠，老南京味道。",
+    "image": "🍜",
+    "open": "06:00",
+    "close": "21:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "11:00",
+      "12:00",
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 8,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "鸭血粉丝汤",
+      "皮肚面"
+    ],
+    "cuisine_tags": [
+      "本地面食"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "鸭血粉丝汤",
+      "皮肚面"
+    ]
+  },
+  {
+    "id": "m_016",
+    "name": "屋顶餐酒馆",
+    "category": "西餐",
+    "slot_role": "EAT",
+    "area": "老门东",
+    "price": 135,
+    "duration_minutes": 90,
+    "rating": 4.6,
+    "review_count": 1200,
+    "review_tags": [
+      "出片",
+      "氛围",
+      "可预约",
+      "有酒"
+    ],
+    "review_snippet": "屋顶露台风景好，适合约会和小聚。",
+    "image": "🥩",
+    "open": "11:00",
+    "close": "23:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "双人浪漫套餐",
+      "price": 238,
+      "save": 32
+    },
+    "stock": 12,
+    "slots": [
+      "17:30",
+      "18:00",
+      "18:30"
+    ],
+    "queue_minutes": 15,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": true,
+      "kid_friendly": false,
+      "spicy": false
+    },
+    "recommended_dishes": [
+      "战斧牛排",
+      "松露意面"
+    ],
+    "cuisine_tags": [
+      "西餐"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "战斧牛排",
+      "松露意面"
+    ]
+  },
+  {
+    "id": "m_017",
+    "name": "江畔河鲜馆",
+    "category": "海鲜",
+    "slot_role": "EAT",
+    "area": "河西",
+    "price": 155,
+    "duration_minutes": 90,
+    "rating": 4.5,
+    "review_count": 1800,
+    "review_tags": [
+      "新鲜",
+      "适合聚会",
+      "量大"
+    ],
+    "review_snippet": "河鲜很新鲜，分量足，适合人多聚餐。",
+    "image": "🦐",
+    "open": "11:00",
+    "close": "21:30",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 8,
+    "slots": [
+      "17:30",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 22,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true,
+      "spicy": false
+    },
+    "recommended_dishes": [
+      "清蒸鲈鱼",
+      "蒜蓉虾"
+    ],
+    "cuisine_tags": [
+      "海鲜"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "清蒸鲈鱼",
+      "蒜蓉虾"
+    ]
+  },
+  {
+    "id": "m_018",
+    "name": "巷子咖啡馆",
+    "category": "简餐",
+    "slot_role": "EAT",
+    "area": "新街口",
+    "price": 62,
+    "duration_minutes": 60,
+    "rating": 4.4,
+    "review_count": 960,
+    "review_tags": [
+      "出片",
+      "不排队",
+      "轻食",
+      "清淡"
+    ],
+    "review_snippet": "沙拉和三明治不错，环境安静。",
+    "image": "🥗",
+    "open": "08:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 30,
+    "slots": [
+      "11:00",
+      "12:00",
+      "15:30",
+      "16:00",
+      "17:00",
+      "18:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple",
+      "family_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true,
+      "spicy": false
+    },
+    "recommended_dishes": [
+      "牛油果沙拉",
+      "拿铁"
+    ],
+    "cuisine_tags": [
+      "简餐"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "牛油果沙拉",
+      "拿铁"
+    ]
+  },
+  {
+    "id": "m_019",
+    "name": "火锅英雄",
+    "category": "火锅",
+    "slot_role": "EAT",
+    "area": "新街口",
+    "price": 110,
+    "duration_minutes": 100,
+    "rating": 4.5,
+    "review_count": 4200,
+    "review_tags": [
+      "热闹",
+      "聚会",
+      "排队久"
+    ],
+    "review_snippet": "锅底很香，但周末排队太久。",
+    "image": "🍲",
+    "open": "11:00",
+    "close": "22:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "4人火锅套餐",
+      "price": 380,
+      "save": 60
+    },
+    "stock": 4,
+    "slots": [
+      "17:30",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 10,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true,
+      "spicy": false
+    },
+    "recommended_dishes": [
+      "番茄牛腩锅",
+      "鸳鸯锅",
+      "鲜切肥牛"
+    ],
+    "cuisine_tags": [
+      "火锅",
+      "番茄锅",
+      "鸳鸯锅"
+    ],
+    "spicy_level": 1,
+    "diet_support": [
+      "鸳鸯锅",
+      "番茄锅",
+      "no_spicy",
+      "不辣"
+    ],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "番茄牛腩锅",
+      "鸳鸯锅",
+      "鲜切肥牛"
+    ]
+  },
+  {
+    "id": "m_020",
+    "name": "烧烤营地",
+    "category": "烧烤",
+    "slot_role": "EAT",
+    "area": "河西",
+    "price": 88,
+    "duration_minutes": 90,
+    "rating": 4.4,
+    "review_count": 1600,
+    "review_tags": [
+      "烧烤",
+      "啤酒",
+      "户外"
+    ],
+    "review_snippet": "烤串不错，夏天喝啤酒很爽。",
+    "image": "🍢",
+    "open": "16:00",
+    "close": "01:00",
+    "can_reserve": true,
+    "group_deal": null,
+    "stock": 15,
+    "slots": [
+      "17:00",
+      "17:30",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 10,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out"
+    ],
+    "flags": {
+      "alcohol": true,
+      "kid_friendly": false,
+      "spicy": true
+    },
+    "recommended_dishes": [
+      "羊肉串",
+      "烤鱼"
+    ],
+    "cuisine_tags": [
+      "烧烤"
+    ],
+    "spicy_level": 0,
+    "diet_support": [],
+    "private_room": true,
+    "table_sizes": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "signature_dishes": [
+      "羊肉串",
+      "烤鱼"
+    ]
+  },
+  {
+    "id": "m_021",
+    "name": "在线电影·爱奇艺",
+    "category": "在线电影",
+    "slot_role": "STAYIN",
+    "area": "线上",
+    "price": 12,
+    "duration_minutes": 120,
+    "rating": 4.5,
+    "review_count": 99999,
+    "review_tags": [
+      "方便",
+      "片源多",
+      "便宜"
+    ],
+    "review_snippet": "在家看最新大片，舒服。",
+    "image": "📺",
+    "open": "00:00",
+    "close": "23:59",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "stay_in"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_022",
+    "name": "在线电影·腾讯视频",
+    "category": "在线电影",
+    "slot_role": "STAYIN",
+    "area": "线上",
+    "price": 15,
+    "duration_minutes": 120,
+    "rating": 4.4,
+    "review_count": 88888,
+    "review_tags": [
+      "方便",
+      "独家内容"
+    ],
+    "review_snippet": "独家剧集多，适合追剧。",
+    "image": "📱",
+    "open": "00:00",
+    "close": "23:59",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 80000,
+    "suitable_scenes": [
+      "stay_in"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_023",
+    "name": "外卖·必胜客",
+    "category": "外卖正餐",
+    "slot_role": "STAYIN",
+    "area": "线上",
+    "price": 65,
+    "duration_minutes": 40,
+    "rating": 4.3,
+    "review_count": 12000,
+    "review_tags": [
+      "快",
+      "披萨",
+      "全家桶"
+    ],
+    "review_snippet": "配送快，披萨热乎乎的。",
+    "image": "🍕",
+    "open": "10:00",
+    "close": "22:00",
+    "can_reserve": false,
+    "group_deal": {
+      "name": "双人披萨套餐",
+      "price": 99,
+      "save": 31
+    },
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "stay_in",
+      "family_out"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "超级至尊披萨",
+      "鸡翅"
+    ]
+  },
+  {
+    "id": "m_024",
+    "name": "外卖·海底捞外送",
+    "category": "外卖正餐",
+    "slot_role": "STAYIN",
+    "area": "线上",
+    "price": 95,
+    "duration_minutes": 50,
+    "rating": 4.6,
+    "review_count": 8500,
+    "review_tags": [
+      "品质",
+      "在家火锅",
+      "服务好"
+    ],
+    "review_snippet": "在家也能吃海底捞，配送很贴心。",
+    "image": "🍲",
+    "open": "10:00",
+    "close": "22:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 60000,
+    "suitable_scenes": [
+      "stay_in"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "番茄锅底",
+      "虾滑"
+    ]
+  },
+  {
+    "id": "m_025",
+    "name": "闪购·小象超市零食箱",
+    "category": "闪购零食",
+    "slot_role": "STAYIN",
+    "area": "线上",
+    "price": 35,
+    "duration_minutes": 30,
+    "rating": 4.5,
+    "review_count": 6200,
+    "review_tags": [
+      "快",
+      "零食",
+      "30分钟达"
+    ],
+    "review_snippet": "下单半小时就到，零食种类多。",
+    "image": "🍿",
+    "open": "08:00",
+    "close": "23:00",
+    "can_reserve": false,
+    "group_deal": {
+      "name": "追剧零食大礼包",
+      "price": 49,
+      "save": 16
+    },
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "stay_in"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_026",
+    "name": "闪购·全家便利店",
+    "category": "闪购零食",
+    "slot_role": "STAYIN",
+    "area": "线上",
+    "price": 25,
+    "duration_minutes": 20,
+    "rating": 4.4,
+    "review_count": 4800,
+    "review_tags": [
+      "快",
+      "便利店",
+      "应有尽有"
+    ],
+    "review_snippet": "想吃什么都有，20分钟送到。",
+    "image": "🥤",
+    "open": "00:00",
+    "close": "23:59",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "stay_in"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": []
+  },
+  {
+    "id": "m_027",
+    "name": "喜茶",
+    "category": "奶茶",
+    "slot_role": "ADDON",
+    "area": "新街口",
+    "price": 22,
+    "duration_minutes": 15,
+    "rating": 4.5,
+    "review_count": 8800,
+    "review_tags": [
+      "奶茶",
+      "出片",
+      "排队"
+    ],
+    "review_snippet": "芝士葡萄很好喝，但周末要排队。",
+    "image": "🧋",
+    "open": "09:00",
+    "close": "22:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00"
+    ],
+    "queue_minutes": 15,
+    "ad_bid": 30000,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "芝士葡萄",
+      "多肉桃李"
+    ],
+    "drink_options": {
+      "sugar_levels": [
+        "zero",
+        "low",
+        "half",
+        "normal"
+      ],
+      "ice_levels": [
+        "hot",
+        "room",
+        "no_ice",
+        "normal"
+      ],
+      "hot_available": true,
+      "caffeine": "low"
+    },
+    "body_suitability": {
+      "cannot_ice": true,
+      "not_too_sweet": true,
+      "body_uncomfortable": true
+    },
+    "addon_use_case": [
+      "route_small_addon"
+    ]
+  },
+  {
+    "id": "m_028",
+    "name": "Manner Coffee",
+    "category": "咖啡",
+    "slot_role": "ADDON",
+    "area": "新街口",
+    "price": 15,
+    "duration_minutes": 10,
+    "rating": 4.6,
+    "review_count": 5600,
+    "review_tags": [
+      "咖啡",
+      "性价比",
+      "快"
+    ],
+    "review_snippet": "自带杯减5元，咖啡品质不错。",
+    "image": "☕",
+    "open": "08:00",
+    "close": "20:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00"
+    ],
+    "queue_minutes": 5,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "拿铁",
+      "美式"
+    ],
+    "drink_options": {
+      "sugar_levels": [
+        "zero",
+        "low",
+        "half",
+        "normal"
+      ],
+      "ice_levels": [
+        "hot",
+        "room",
+        "no_ice",
+        "normal"
+      ],
+      "hot_available": true,
+      "caffeine": "medium"
+    },
+    "body_suitability": {
+      "cannot_ice": true,
+      "not_too_sweet": true,
+      "body_uncomfortable": true
+    },
+    "addon_use_case": [
+      "route_small_addon"
+    ]
+  },
+  {
+    "id": "m_029",
+    "name": "一点点",
+    "category": "奶茶",
+    "slot_role": "ADDON",
+    "area": "老门东",
+    "price": 12,
+    "duration_minutes": 10,
+    "rating": 4.3,
+    "review_count": 7200,
+    "review_tags": [
+      "便宜",
+      "奶茶",
+      "经典"
+    ],
+    "review_snippet": "波霸奶茶是经典，便宜好喝。",
+    "image": "🥤",
+    "open": "09:30",
+    "close": "22:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00"
+    ],
+    "queue_minutes": 8,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "波霸奶茶",
+      "冰淇淋红茶"
+    ],
+    "drink_options": {
+      "sugar_levels": [
+        "zero",
+        "low",
+        "half",
+        "normal"
+      ],
+      "ice_levels": [
+        "hot",
+        "room",
+        "no_ice",
+        "normal"
+      ],
+      "hot_available": true,
+      "caffeine": "low"
+    },
+    "body_suitability": {
+      "cannot_ice": true,
+      "not_too_sweet": true,
+      "body_uncomfortable": true
+    },
+    "addon_use_case": [
+      "route_small_addon"
+    ]
+  },
+  {
+    "id": "m_030",
+    "name": "精酿啤酒屋",
+    "category": "酒吧",
+    "slot_role": "ADDON",
+    "area": "老门东",
+    "price": 45,
+    "duration_minutes": 60,
+    "rating": 4.5,
+    "review_count": 920,
+    "review_tags": [
+      "精酿",
+      "氛围",
+      "有酒"
+    ],
+    "review_snippet": "精酿种类多，适合小酌。",
+    "image": "🍺",
+    "open": "16:00",
+    "close": "01:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "17:00",
+      "18:00",
+      "19:00",
+      "20:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": true,
+      "kid_friendly": false
+    },
+    "recommended_dishes": [
+      "IPA",
+      "世涛"
+    ]
+  },
+  {
+    "id": "m_031",
+    "name": "甜品工坊",
+    "category": "甜品",
+    "slot_role": "ADDON",
+    "area": "新街口",
+    "price": 28,
+    "duration_minutes": 20,
+    "rating": 4.4,
+    "review_count": 1800,
+    "review_tags": [
+      "甜品",
+      "出片",
+      "好吃"
+    ],
+    "review_snippet": "提拉米苏很好吃，环境也精致。",
+    "image": "🍰",
+    "open": "10:00",
+    "close": "21:00",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "提拉米苏",
+      "芒果千层"
+    ]
+  },
+  {
+    "id": "m_032",
+    "name": "DQ冰淇淋",
+    "category": "冰淇淋",
+    "slot_role": "ADDON",
+    "area": "河西",
+    "price": 25,
+    "duration_minutes": 10,
+    "rating": 4.3,
+    "review_count": 3200,
+    "review_tags": [
+      "冰淇淋",
+      "夏天",
+      "孩子喜欢"
+    ],
+    "review_snippet": "暴风雪系列很受欢迎。",
+    "image": "🍦",
+    "open": "10:00",
+    "close": "21:30",
+    "can_reserve": false,
+    "group_deal": null,
+    "stock": 999,
+    "slots": [
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00"
+    ],
+    "queue_minutes": 5,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "奥利奥暴风雪",
+      "草莓暴风雪"
+    ]
+  },
+  {
+    "id": "m_033",
+    "name": "花礼到店·生日蛋糕鲜花",
+    "category": "蛋糕鲜花",
+    "slot_role": "ADDON",
+    "area": "新街口",
+    "price": 38,
+    "duration_minutes": 0,
+    "rating": 4.7,
+    "review_count": 1260,
+    "review_tags": [
+      "生日",
+      "准时送达",
+      "仪式感"
+    ],
+    "review_snippet": "蛋糕和花束可以提前送到餐厅，包装干净体面。",
+    "image": "🎂",
+    "open": "10:00",
+    "close": "21:00",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "6人生日蛋糕鲜花套餐",
+      "price": 218,
+      "save": 40
+    },
+    "stock": 12,
+    "slots": [
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00",
+      "19:30",
+      "20:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 12000,
+    "suitable_scenes": [
+      "friends_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "草莓奶油蛋糕",
+      "向日葵花束"
+    ]
+  },
+  {
+    "id": "m_034",
+    "name": "河西花房·蛋糕鲜花急送",
+    "category": "蛋糕鲜花",
+    "slot_role": "ADDON",
+    "area": "河西",
+    "price": 42,
+    "duration_minutes": 0,
+    "rating": 4.6,
+    "review_count": 880,
+    "review_tags": [
+      "生日",
+      "可写贺卡",
+      "送达稳定"
+    ],
+    "review_snippet": "适合临时庆生，支持餐厅前台代收。",
+    "image": "💐",
+    "open": "10:00",
+    "close": "21:30",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "蛋糕+小花束套餐",
+      "price": 238,
+      "save": 35
+    },
+    "stock": 8,
+    "slots": [
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00",
+      "19:30",
+      "20:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 0,
+    "suitable_scenes": [
+      "friends_out",
+      "family_out",
+      "couple"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": true
+    },
+    "recommended_dishes": [
+      "巧克力蛋糕",
+      "玫瑰小花束"
+    ]
+  },
+  {
+    "id": "m_035",
+    "name": "谜盒剧场·欢乐制造局",
+    "category": "剧本杀",
+    "slot_role": "PLAY",
+    "area": "新街口",
+    "price": 128,
+    "duration_minutes": 210,
+    "rating": 4.8,
+    "review_count": 760,
+    "review_tags": [
+      "欢乐本",
+      "新手友好",
+      "DM带得好",
+      "可拼场"
+    ],
+    "review_snippet": "欢乐盒装本节奏很稳，4-6人都能上车。",
+    "image": "??",
+    "open": "12:00",
+    "close": "23:30",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "欢乐盒装拼场券",
+      "price": 118,
+      "save": 20
+    },
+    "stock": 8,
+    "slots": [
+      "14:00",
+      "15:00",
+      "19:00",
+      "20:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 55000,
+    "suitable_scenes": [
+      "friends_out",
+      "play_only",
+      "birthday"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": false
+    },
+    "recommended_dishes": [],
+    "script_styles": [
+      "欢乐本",
+      "推理本"
+    ],
+    "player_counts": [
+      4,
+      5,
+      6
+    ],
+    "difficulty": "低",
+    "horror_level": "无",
+    "newbie_friendly": true,
+    "dm_rating": 4.9,
+    "open_tables": [
+      {
+        "name": "爆笑便利店",
+        "style": "欢乐本",
+        "required_players": 6,
+        "current_players": 2,
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 210,
+        "start": "19:00",
+        "deadline": "18:20",
+        "status": "assembling"
+      },
+      {
+        "name": "谁偷了我的周末",
+        "style": "欢乐本",
+        "required_players": 4,
+        "current_players": 0,
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 180,
+        "start": "15:00",
+        "deadline": "14:20",
+        "status": "open"
+      }
+    ]
+  },
+  {
+    "id": "m_036",
+    "name": "零点推理社",
+    "category": "剧本杀",
+    "slot_role": "PLAY",
+    "area": "河西",
+    "price": 148,
+    "duration_minutes": 240,
+    "rating": 4.7,
+    "review_count": 540,
+    "review_tags": [
+      "推理本",
+      "机制本",
+      "硬核",
+      "拼场中"
+    ],
+    "review_snippet": "推理本质量高，适合想认真盘的朋友局。",
+    "image": "???",
+    "open": "13:00",
+    "close": "23:59",
+    "can_reserve": true,
+    "group_deal": {
+      "name": "推理本工作日券",
+      "price": 138,
+      "save": 18
+    },
+    "stock": 6,
+    "slots": [
+      "14:00",
+      "19:00",
+      "20:00"
+    ],
+    "queue_minutes": 0,
+    "ad_bid": 22000,
+    "suitable_scenes": [
+      "friends_out",
+      "play_only"
+    ],
+    "flags": {
+      "alcohol": false,
+      "kid_friendly": false
+    },
+    "recommended_dishes": [],
+    "script_styles": [
+      "推理本",
+      "机制本",
+      "恐怖本"
+    ],
+    "player_counts": [
+      5,
+      6,
+      7
+    ],
+    "difficulty": "高",
+    "horror_level": "中",
+    "newbie_friendly": false,
+    "dm_rating": 4.8,
+    "open_tables": [
+      {
+        "name": "钟表匠的遗嘱",
+        "style": "推理本",
+        "required_players": 6,
+        "current_players": 2,
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 240,
+        "start": "19:30",
+        "deadline": "18:50",
+        "status": "assembling"
+      },
+      {
+        "name": "雾港阵营",
+        "style": "机制本",
+        "required_players": 7,
+        "current_players": 3,
+        "need_players": 4,
+        "can_start_if_join": true,
+        "duration_minutes": 240,
+        "start": "20:00",
+        "deadline": "19:10",
+        "status": "assembling"
+      }
+    ]
+  }
+]

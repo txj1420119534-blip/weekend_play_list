@@ -1,0 +1,1714 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>周末搞定 · 本地生活执行助手</title>
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   美团黄主题 · 单文件原生 JS · 周末搞定
+   主色：美团黄 #FFD000；推广红 #FF4D27；价格红 #FF1A1A
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  --mt-yellow:#FFD000;
+  --mt-yellow-deep:#F0B900;
+  --mt-yellow-light:#FFF6D6;
+  --mt-yellow-bar:#FFE680;
+  --ink:#191919;
+  --ink-2:#333333;
+  --ink-3:#666666;
+  --ink-4:#999999;
+  --line:#EEEEEE;
+  --line-2:#F5F5F5;
+  --bg:#F5F5F5;
+  --card:#FFFFFF;
+  --promo:#FF4D27;
+  --promo-bg:#FFF1ED;
+  --price:#FF1A1A;
+  --ok:#21B574;
+  --ok-bg:#E6F7EF;
+  --warn:#FF8800;
+  --warn-bg:#FFF4E5;
+  --err:#FF4D27;
+  --err-bg:#FFF1ED;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
+  --shadow-card:0 2px 12px -4px rgba(25,25,25,.08);
+  --shadow-lift:0 12px 36px -10px rgba(25,25,25,.18);
+  --shadow-phone:0 30px 80px -20px rgba(25,25,25,.35),0 8px 24px -8px rgba(25,25,25,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--sans);color:var(--ink);background:var(--bg);
+  line-height:1.55;font-size:14px;
+  background-image:
+    radial-gradient(900px 600px at 90% -5%,rgba(255,208,0,.18),transparent 60%),
+    radial-gradient(700px 500px at 5% 100%,rgba(255,208,0,.10),transparent 60%);
+  background-attachment:fixed;
+  min-height:100vh;
+}
+button{font-family:inherit}
+::selection{background:var(--mt-yellow);color:var(--ink)}
+
+/* ===== 顶部品牌栏 ===== */
+.topbar{
+  max-width:1200px;margin:0 auto;padding:18px 24px 6px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{
+  width:42px;height:42px;border-radius:12px;
+  background:linear-gradient(155deg,#FFE066,var(--mt-yellow) 50%,var(--mt-yellow-deep));
+  display:grid;place-items:center;font-size:22px;
+  box-shadow:0 8px 18px -6px rgba(240,185,0,.55);
+}
+.brand-name{font-size:22px;font-weight:700;letter-spacing:.3px}
+.brand-name em{color:var(--mt-yellow-deep);font-style:normal}
+.brand-tag{font-size:12px;color:var(--ink-4);margin-top:-2px}
+.topbar-right{display:flex;gap:10px;align-items:center}
+.top-link{
+  font-size:13px;color:var(--ink-3);text-decoration:none;
+  padding:7px 13px;border-radius:999px;border:1px solid var(--line);
+  background:#fff;transition:.18s;
+}
+.top-link:hover{border-color:var(--mt-yellow-deep);color:var(--ink);background:var(--mt-yellow-light)}
+.top-link.reset{border-color:var(--line);color:var(--ink-4)}
+.top-link.reset:hover{border-color:var(--err);color:var(--err);background:var(--err-bg)}
+
+/* ===== 主体两栏布局 ===== */
+.workspace{
+  max-width:1200px;margin:0 auto;padding:8px 24px 70px;
+  display:grid;grid-template-columns:430px 1fr;gap:28px;align-items:start;
+}
+@media(max-width:1000px){
+  .workspace{grid-template-columns:1fr;padding:8px 16px 70px;gap:16px}
+  .phone-wrap{justify-self:center}
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   左栏：美团手机预览
+   ════════════════════════════════════════════════════════════════════ */
+.phone-wrap{position:sticky;top:18px;align-self:start}
+.phone{
+  width:390px;height:760px;
+  background:#000;border-radius:42px;padding:12px;
+  box-shadow:var(--shadow-phone);
+  position:relative;
+}
+.phone::before{
+  content:"";position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:118px;height:28px;background:#000;border-radius:0 0 18px 18px;z-index:5;
+}
+.phone-screen{
+  width:100%;height:100%;border-radius:30px;overflow:hidden;
+  background:var(--bg);display:flex;flex-direction:column;
+  position:relative;
+}
+/* 状态栏 */
+.statusbar{
+  height:38px;background:var(--mt-yellow);
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 22px 6px;font-size:13px;font-weight:700;color:var(--ink);
+  flex:none;
+}
+.statusbar .icons{display:flex;gap:5px;align-items:center;font-size:11px}
+/* 美团式黄色头部 */
+.mt-header{
+  background:var(--mt-yellow);padding:8px 16px 14px;
+  flex:none;
+}
+.mt-location{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 0 10px;
+}
+.mt-loc-l{display:flex;align-items:center;gap:6px;font-weight:600;font-size:15px;color:var(--ink)}
+.mt-loc-l::before{content:"📍";font-size:14px}
+.mt-loc-r{display:flex;gap:14px;font-size:13px;color:var(--ink)}
+.mt-search{
+  background:#fff;border-radius:999px;padding:9px 16px;
+  display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-4);
+  box-shadow:0 1px 0 rgba(0,0,0,.04);
+}
+.mt-search-icon{font-size:14px}
+.mt-search input{
+  flex:1;border:0;background:transparent;outline:0;font-size:13px;
+  color:var(--ink);
+}
+.mt-search input::placeholder{color:var(--ink-4)}
+.mt-search-btn{
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;
+  padding:5px 12px;border-radius:999px;border:0;cursor:pointer;
+}
+
+/* 滚动主体 */
+.scroller{flex:1;overflow-y:auto;background:var(--bg);scroll-behavior:smooth}
+.scroller::-webkit-scrollbar{width:0}
+
+/* ===== 首页：分类九宫格 ===== */
+.cat-grid{
+  background:#fff;margin:0 0 8px;padding:14px 8px 6px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:10px 0;
+}
+.cat-item{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.cat-icon{
+  width:42px;height:42px;border-radius:10px;
+  background:var(--mt-yellow-light);display:grid;place-items:center;
+  font-size:22px;transition:.18s;
+}
+.cat-item:active .cat-icon{transform:scale(.92)}
+.cat-name{font-size:11px;color:var(--ink-2)}
+
+/* ===== Banner（产品入口）===== */
+.banner{
+  margin:0 12px 10px;
+  background:linear-gradient(135deg,#FFE680,var(--mt-yellow) 60%,var(--mt-yellow-deep));
+  border-radius:14px;padding:14px 16px;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;cursor:pointer;
+  box-shadow:0 8px 18px -10px rgba(240,185,0,.7);
+}
+.banner-l{flex:1;min-width:0}
+.banner-eyebrow{font-size:11px;color:var(--ink-2);font-weight:600;letter-spacing:.6px}
+.banner-title{font-size:17px;font-weight:800;color:var(--ink);margin-top:2px;line-height:1.25}
+.banner-title em{color:#A05A00;font-style:normal}
+.banner-sub{font-size:12px;color:var(--ink-2);margin-top:3px}
+.banner-cta{
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;
+  padding:7px 14px;border-radius:999px;flex:none;
+}
+.banner-mascot{font-size:38px;flex:none;margin-left:6px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15))}
+
+/* ===== 输入页 ===== */
+.input-card{
+  margin:0 12px 12px;background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow-card);
+}
+.input-card-head{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.input-card-head .dot{
+  width:24px;height:24px;border-radius:7px;background:var(--mt-yellow);
+  display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--ink);
+  flex:none;
+}
+.input-card-head .h{font-size:15px;font-weight:700}
+.input-card-head .s{font-size:11px;color:var(--ink-4);margin-left:auto}
+
+.input-area{
+  width:100%;min-height:80px;resize:none;border:1.5px solid var(--line);
+  border-radius:10px;padding:11px 12px;font-family:var(--sans);font-size:14px;
+  color:var(--ink);background:var(--line-2);transition:.18s;line-height:1.55;
+  outline:none;
+}
+.input-area:focus{border-color:var(--mt-yellow-deep);background:#fff}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.chip{
+  font-size:12px;color:var(--ink-3);border:1px solid var(--line);
+  background:#fff;padding:5px 11px;border-radius:999px;cursor:pointer;transition:.16s;
+}
+.chip:hover,.chip:active{border-color:var(--mt-yellow-deep);color:var(--ink);background:var(--mt-yellow-light)}
+
+.btn-primary{
+  width:100%;margin-top:12px;border:0;cursor:pointer;
+  background:linear-gradient(135deg,var(--mt-yellow),var(--mt-yellow-deep));
+  color:var(--ink);font-weight:700;font-size:15px;
+  padding:13px;border-radius:999px;transition:.18s;
+  box-shadow:0 10px 22px -10px rgba(240,185,0,.7);
+}
+.btn-primary:active{transform:translateY(1px)}
+.btn-primary:disabled{opacity:.55;cursor:default}
+.btn-primary.dark{background:var(--ink);color:#fff}
+.btn-primary.dark:hover{background:#000}
+
+/* ===== 解析卡 ===== */
+.parse-card{
+  margin:0 12px 12px;background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow-card);
+}
+
+/* ===== 追问卡（信息缺失时） ===== */
+.clarify-card{
+  margin:0 12px 12px;background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow-card);
+  border-left:4px solid var(--warn);
+}
+.clarify-card .card-h .num{background:var(--warn);color:#fff}
+.clarify-note{
+  background:var(--warn-bg);border-radius:8px;padding:10px 12px;
+  font-size:12.5px;color:#7A4F0A;line-height:1.55;margin:6px 0 12px;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.clarify-note::before{content:"💡";font-size:14px;flex:none}
+.clarify-note b{color:var(--ink);font-weight:700}
+.clarify-q{margin-bottom:14px}
+.clarify-q:last-child{margin-bottom:8px}
+.clarify-q .ql{
+  font-size:13px;font-weight:700;color:var(--ink);margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;
+}
+.clarify-q .ql::before{content:"❓";font-size:13px}
+.clarify-q .chips{display:flex;flex-wrap:wrap;gap:6px}
+.clarify-q .opt{
+  font-size:13px;padding:7px 14px;border-radius:999px;
+  border:1.5px solid var(--line);background:#fff;color:var(--ink-3);
+  cursor:pointer;transition:.14s;font-family:inherit;
+}
+.clarify-q .opt:hover{border-color:var(--mt-yellow-deep);color:var(--ink);background:var(--mt-yellow-light)}
+.clarify-q .opt.active{
+  border-color:var(--mt-yellow-deep);background:var(--mt-yellow);
+  color:var(--ink);font-weight:700;
+}
+.parse-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:8px;
+}
+.parse-row{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.parse-row.full{grid-column:1/-1}
+.parse-k{font-size:11px;color:var(--ink-4)}
+.parse-v{font-size:13.5px;font-weight:700;color:var(--ink)}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.t{
+  font-size:11px;padding:2px 7px;border-radius:5px;font-weight:600;
+  background:var(--mt-yellow-light);color:#8C6900;
+}
+.t.avoid{background:var(--warn-bg);color:var(--warn)}
+
+/* ===== 方案卡 ===== */
+.plan-list{display:flex;flex-direction:column;gap:10px;padding:0 12px 12px}
+.plan{
+  background:#fff;border-radius:14px;padding:14px;box-shadow:var(--shadow-card);
+  position:relative;transition:.18s;
+}
+.plan.locked{opacity:1;pointer-events:auto}
+.plan-rank{
+  position:absolute;top:0;left:14px;font-size:11px;font-weight:800;
+  background:var(--ink);color:var(--mt-yellow);padding:3px 9px;border-radius:0 0 8px 8px;
+  letter-spacing:.5px;
+}
+.plan-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-top:8px}
+.plan-title{font-size:17px;font-weight:800;color:var(--ink);line-height:1.3}
+.plan-focus{font-size:12px;color:var(--ink-4);margin-top:3px}
+.score-ring{
+  width:54px;height:54px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--mt-yellow) calc(var(--p)*1%),var(--line) 0);
+  display:grid;place-items:center;
+}
+.score-ring-in{
+  width:42px;height:42px;border-radius:50%;background:#fff;
+  display:grid;place-items:center;line-height:1;
+}
+.score-num{font-size:17px;font-weight:800;color:var(--ink)}
+.score-lbl{font-size:8px;color:var(--ink-4);letter-spacing:.5px;margin-top:1px}
+
+/* 行程时间轴 */
+.timeline{margin:12px 0 8px;padding-left:0;position:relative}
+.tl-node{position:relative;padding:0 0 12px 22px}
+.tl-node:last-child{padding-bottom:0}
+.tl-node::before{
+  content:"";position:absolute;left:0;top:4px;width:11px;height:11px;border-radius:50%;
+  background:#fff;border:2px solid var(--mt-yellow-deep);z-index:2;
+}
+.tl-node::after{
+  content:"";position:absolute;left:5px;top:14px;bottom:-2px;width:1.5px;background:var(--line);
+}
+.tl-node:last-child::after{display:none}
+.tl-node.travel::before{background:var(--ink-4);border-color:var(--ink-4);width:7px;height:7px;left:2px;top:6px}
+.tl-node.changed::before{background:var(--ok);border-color:var(--ok);box-shadow:0 0 0 3px var(--ok-bg)}
+.tl-time{font-size:12px;color:var(--mt-yellow-deep);font-weight:800;font-feature-settings:"tnum"}
+.tl-card{
+  display:flex;gap:10px;background:var(--line-2);border-radius:10px;
+  padding:10px;margin-top:5px;align-items:flex-start;
+}
+.tl-img{
+  width:54px;height:54px;border-radius:8px;background:var(--mt-yellow-light);
+  display:grid;place-items:center;font-size:28px;flex:none;
+}
+.tl-body{flex:1;min-width:0}
+.tl-name{
+  font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.3;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+.badge{
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;
+  background:var(--promo-bg);color:var(--promo);
+}
+.badge.replace{background:var(--ok-bg);color:var(--ok)}
+.badge.alt{background:var(--mt-yellow-light);color:#8C6900}
+.tl-meta{font-size:12px;color:var(--ink-4);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap}
+.tl-meta b{color:var(--price);font-weight:800;font-size:13px}
+.tl-meta .star{color:#FFB100;font-weight:600}
+.tl-meta .area{color:var(--ink-3)}
+.tl-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.tl-tag{
+  font-size:10.5px;padding:1.5px 6px;border-radius:4px;
+  background:#fff;color:var(--ink-4);border:1px solid var(--line);
+}
+.tl-deal{
+  margin-top:6px;font-size:11px;color:var(--promo);
+  background:var(--promo-bg);padding:3px 8px;border-radius:5px;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.tl-deal::before{content:"团"}
+.tl-was{
+  font-size:11px;color:var(--ink-4);text-decoration:line-through;margin-top:3px;
+}
+.tl-travel{
+  background:transparent;padding:0;font-size:12px;color:var(--ink-4);margin-top:-3px;
+}
+.tl-travel::before{content:""}
+
+/* 方案底部 */
+.plan-reason{
+  font-size:12.5px;color:var(--ink-3);background:var(--line-2);
+  border-radius:8px;padding:8px 10px;margin:8px 0;line-height:1.6;
+}
+.plan-reason b{color:var(--ink);font-weight:700}
+.commercial-list{
+  display:flex;flex-direction:column;gap:6px;margin:8px 0;
+}
+.commercial-item{
+  background:var(--mt-yellow-light);border:1px solid var(--mt-yellow-bar);
+  border-radius:8px;padding:8px 10px;font-size:12px;color:var(--ink-2);
+}
+.commercial-item b{font-size:12.5px;color:var(--ink);font-weight:800}
+.commercial-item span{color:var(--price);font-weight:800}
+.commercial-item em{font-style:normal;color:var(--ink-4);margin-left:5px}
+.plan-risks{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.risk{
+  font-size:11px;color:var(--warn);background:var(--warn-bg);
+  padding:2px 7px;border-radius:5px;
+}
+.plan-foot{
+  display:flex;justify-content:space-between;align-items:center;
+  border-top:1px dashed var(--line);padding-top:10px;
+}
+.plan-cost-num{font-size:11px;color:var(--ink-4)}
+.plan-cost-num b{font-size:18px;color:var(--price);font-weight:800;margin-right:1px}
+.plan-cost-num span{margin-left:6px;color:var(--ink-3);font-size:11px}
+.btn-confirm{
+  border:0;cursor:pointer;background:linear-gradient(135deg,var(--mt-yellow),var(--mt-yellow-deep));
+  color:var(--ink);font-weight:700;font-size:13px;
+  padding:8px 16px;border-radius:999px;transition:.16s;
+}
+.btn-confirm:active{transform:translateY(1px)}
+.btn-confirm:disabled{opacity:.48;cursor:default;transform:none}
+.btn-secondary{
+  border:1px solid var(--line);cursor:pointer;background:#fff;
+  color:var(--ink);font-weight:700;font-size:12.5px;
+  padding:8px 12px;border-radius:999px;transition:.16s;
+}
+.btn-secondary:hover{border-color:var(--mt-yellow-deep);background:var(--mt-yellow-light)}
+.btn-secondary:disabled{opacity:.45;cursor:default}
+.locked-badge{
+  font-size:12px;font-weight:700;color:var(--ok);
+  background:var(--ok-bg);padding:5px 12px;border-radius:999px;
+}
+
+/* ===== 异常区 ===== */
+.exc-card{
+  margin:0 12px 12px;background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow-card);
+}
+.exc-banner{
+  display:flex;gap:9px;align-items:flex-start;
+  background:var(--ok-bg);border:1px solid #C3E9D5;border-radius:10px;
+  padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.5;
+}
+.exc-banner.warn{background:var(--warn-bg);border-color:#FFD9A0}
+.exc-banner-icon{
+  width:22px;height:22px;border-radius:6px;background:var(--ok);color:#fff;
+  display:grid;place-items:center;font-size:12px;font-weight:800;flex:none;
+}
+.exc-banner.warn .exc-banner-icon{background:var(--warn)}
+.exc-banner b{color:var(--ok);font-weight:700}
+.exc-banner.warn b{color:var(--warn)}
+.exc-btns{display:grid;grid-template-columns:1fr;gap:8px}
+.exc-btn{
+  display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;
+  background:var(--line-2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-family:var(--sans);transition:.16s;
+}
+.exc-btn:hover{border-color:var(--err);background:var(--err-bg)}
+.exc-btn:disabled{opacity:.4;cursor:default}
+.exc-btn:disabled:hover{border-color:var(--line);background:var(--line-2)}
+.exc-emoji{font-size:22px;flex:none}
+.exc-l{flex:1;min-width:0}
+.exc-t{font-size:13.5px;font-weight:700;color:var(--ink)}
+.exc-d{font-size:11.5px;color:var(--ink-4);margin-top:1px}
+
+/* ===== 分享卡 ===== */
+.share-card{
+  margin:0 12px 12px;background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow-card);
+}
+.share-text{
+  background:linear-gradient(160deg,#FFFCEC,#fff);
+  border:1.5px solid var(--mt-yellow-bar);border-radius:10px;padding:13px;
+  font-size:13px;line-height:1.85;white-space:pre-wrap;color:var(--ink-2);
+  font-feature-settings:"tnum";
+}
+.btn-copy{
+  margin-top:10px;border:1px solid var(--line);background:#fff;
+  color:var(--ink);font-family:var(--sans);font-size:13px;font-weight:600;
+  padding:8px 16px;border-radius:999px;cursor:pointer;transition:.16s;width:100%;
+}
+.btn-copy:hover{border-color:var(--mt-yellow-deep);background:var(--mt-yellow-light)}
+.vote-summary{
+  background:var(--line-2);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;margin-top:8px;font-size:12.5px;color:var(--ink-3);
+}
+.vote-summary b{color:var(--ink);font-weight:800}
+.vote-bars{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.vote-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-3)}
+.vote-row span:first-child{font-weight:700;color:var(--ink)}
+.vote-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.vote-actions .wide{grid-column:1/-1}
+.rescue-note{
+  background:var(--warn-bg);border:1px solid #FFD9A0;border-radius:10px;
+  padding:9px 11px;margin-bottom:10px;font-size:12.5px;color:#7A4F0A;line-height:1.55;
+}
+
+.friend-feedback{
+  display:flex;flex-direction:column;gap:8px;margin-top:8px;
+}
+.friend-msg{
+  border:1px solid var(--line);background:var(--line-2);border-radius:10px;
+  padding:10px 12px;text-align:left;cursor:pointer;font-family:var(--sans);
+  transition:.16s;color:var(--ink);
+}
+.friend-msg:hover{border-color:var(--mt-yellow-deep);background:var(--mt-yellow-light)}
+.friend-msg b{font-size:12.5px;color:var(--ink);font-weight:800}
+.friend-msg span{display:block;font-size:12px;color:var(--ink-4);line-height:1.55;margin-top:2px}
+.friend-msg em{font-style:normal;color:var(--price);font-size:11px;font-weight:700}
+.feedback-status{
+  display:flex;flex-direction:column;gap:6px;margin-top:8px;margin-bottom:8px;
+}
+.feedback-ok{
+  background:var(--ok-bg);border:1px solid #C3E9D5;border-radius:9px;
+  padding:7px 10px;font-size:12px;color:#126A43;
+}
+.feedback-ok b{color:#126A43;font-weight:800}
+
+/* ===== 增值推荐 ===== */
+.addon-card{
+  margin:0 12px 12px;background:linear-gradient(135deg,#FFFCEC,#FFF6D6);
+  border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;
+  border:1px solid var(--mt-yellow-bar);
+}
+.addon-emoji{font-size:32px;flex:none}
+.addon-body{flex:1;min-width:0}
+.addon-title{font-size:11px;color:var(--mt-yellow-deep);font-weight:700;letter-spacing:.5px}
+.addon-name{font-size:14.5px;font-weight:700;color:var(--ink);margin-top:1px}
+.addon-meta{font-size:11.5px;color:var(--ink-4);margin-top:2px}
+.addon-meta b{color:var(--price);font-weight:800;font-size:13px}
+
+/* ===== 账单卡 ===== */
+.bill-card{
+  margin:0 12px 12px;background:#fff;border-radius:14px;padding:14px;
+  box-shadow:var(--shadow-card);
+}
+.bill-rows{display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.bill-row{display:flex;justify-content:space-between;color:var(--ink-3)}
+.bill-row.total{
+  border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;
+  color:var(--ink);font-weight:700;font-size:14px;
+}
+.bill-row.total b{color:var(--price);font-size:18px;font-weight:800}
+
+/* ===== 卡片头部公共样式 ===== */
+.card-h{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;
+}
+.card-h .num{
+  width:22px;height:22px;border-radius:6px;background:var(--mt-yellow);
+  color:var(--ink);font-weight:800;font-size:12px;display:grid;place-items:center;flex:none;
+}
+.card-h .t{font-size:15px;font-weight:700}
+.card-h .s{font-size:11px;color:var(--ink-4);margin-left:auto}
+
+/* 底部 Tab Bar */
+.tabbar{
+  flex:none;background:#fff;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 9px;cursor:pointer;color:var(--ink-4);font-size:10.5px}
+.tab.active{color:var(--mt-yellow-deep);font-weight:700}
+.tab-icon{font-size:18px;line-height:1}
+.tab.active .tab-icon{filter:none}
+
+/* ════════════════════════════════════════════════════════════════════
+   右栏：执行日志 + 解释
+   ════════════════════════════════════════════════════════════════════ */
+.side{display:flex;flex-direction:column;gap:14px}
+.side-card{
+  background:#fff;border-radius:16px;padding:18px 20px;box-shadow:var(--shadow-card);
+  border:1px solid var(--line);
+}
+.side-eyebrow{
+  font-size:11px;letter-spacing:1.5px;color:var(--mt-yellow-deep);font-weight:800;
+  text-transform:uppercase;
+}
+.side-title{font-size:18px;font-weight:800;margin-top:2px}
+.side-sub{font-size:13px;color:var(--ink-4);margin-top:4px;line-height:1.6}
+
+/* 执行日志 */
+.log-body{
+  margin-top:12px;max-height:480px;overflow-y:auto;
+  padding-right:4px;
+}
+.log-body::-webkit-scrollbar{width:6px}
+.log-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.log-empty{font-size:12.5px;color:var(--ink-4);text-align:center;padding:24px 8px}
+.log-item{
+  display:flex;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line);
+  animation:logIn .35s ease;
+}
+.log-item:last-child{border-bottom:none}
+@keyframes logIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+.log-dot{
+  flex:none;width:9px;height:9px;border-radius:50%;margin-top:6px;
+  background:var(--ink-4);
+}
+.log-dot.running{background:var(--mt-yellow-deep);animation:pulse 1s infinite}
+.log-dot.success{background:var(--ok)}
+.log-dot.warning{background:var(--warn)}
+.log-dot.error{background:var(--err)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.log-txt{flex:1;min-width:0}
+.log-step{font-size:12.5px;font-weight:700;color:var(--ink)}
+.log-msg{font-size:12px;color:var(--ink-4);line-height:1.5;margin-top:1px}
+.log-time{font-size:10px;color:var(--ink-4);flex:none;margin-top:3px;font-feature-settings:"tnum"}
+
+/* 解释卡 */
+.expl{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.expl-row{display:flex;gap:10px;font-size:13px;line-height:1.6;color:var(--ink-2)}
+.expl-num{
+  width:20px;height:20px;border-radius:50%;background:var(--mt-yellow);color:var(--ink);
+  font-size:11px;font-weight:800;display:grid;place-items:center;flex:none;margin-top:2px;
+}
+.expl b{color:var(--ink);font-weight:700}
+
+/* footer */
+.foot{
+  max-width:1200px;margin:0 auto;padding:0 24px 28px;
+  font-size:11.5px;color:var(--ink-4);line-height:1.7;
+}
+.foot code{background:#FFFCEC;border:1px solid var(--mt-yellow-bar);padding:1px 5px;border-radius:4px;color:#8C6900}
+
+/* ===== 进度动画 + reveal ===== */
+.reveal{opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s ease}
+.reveal.on{opacity:1;transform:none}
+.hidden{display:none !important}
+
+/* 全屏 loading */
+.spinner{
+  display:inline-block;width:14px;height:14px;border:2px solid var(--mt-yellow-deep);
+  border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;
+  vertical-align:middle;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 美团黄色 promo 标 */
+.mt-promo-tag{
+  font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;
+  background:var(--promo);color:#fff;letter-spacing:.2px;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🐹</div>
+    <div>
+      <div class="brand-name"><em>周末</em>搞定</div>
+      <div class="brand-tag">一句话，把这场周末局安排到能出门</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a class="top-link" href="/admin" target="_blank">平台后台</a>
+    <button class="top-link reset" onclick="resetAll()">↺ 重新开始</button>
+  </div>
+</div>
+
+<div class="workspace">
+
+  <!-- ═════════ 左栏：美团手机预览 ═════════ -->
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+
+        <!-- 状态栏 -->
+        <div class="statusbar">
+          <span id="phoneClock">14:00</span>
+          <span class="icons"><span>📶</span><span>📡</span><span>🔋</span></span>
+        </div>
+
+        <!-- 美团黄色头部 -->
+        <div class="mt-header">
+          <div class="mt-location">
+            <span class="mt-loc-l">南京 · 新街口</span>
+            <span class="mt-loc-r"><span>🔔</span><span>👤</span></span>
+          </div>
+          <div class="mt-search">
+            <span class="mt-search-icon">🔍</span>
+            <input id="goalInput" placeholder="说一句话，AI 帮你安排周末" />
+            <button class="mt-search-btn" onclick="startPlanning()">安排</button>
+          </div>
+        </div>
+
+        <!-- 滚动主体 -->
+        <div class="scroller" id="scroller">
+
+          <!-- 1. 首页：分类九宫格 -->
+          <div class="cat-grid" id="catGrid">
+            <div class="cat-item"><div class="cat-icon">🍱</div><div class="cat-name">美食</div></div>
+            <div class="cat-item"><div class="cat-icon">🛵</div><div class="cat-name">外卖</div></div>
+            <div class="cat-item"><div class="cat-icon">🏨</div><div class="cat-name">酒店</div></div>
+            <div class="cat-item"><div class="cat-icon">🎬</div><div class="cat-name">电影</div></div>
+            <div class="cat-item"><div class="cat-icon">🚕</div><div class="cat-name">打车</div></div>
+            <div class="cat-item"><div class="cat-icon">🎫</div><div class="cat-name">门票</div></div>
+            <div class="cat-item"><div class="cat-icon">💆</div><div class="cat-name">休闲玩乐</div></div>
+            <div class="cat-item"><div class="cat-icon">🎁</div><div class="cat-name">闪购</div></div>
+            <div class="cat-item"><div class="cat-icon">💇</div><div class="cat-name">丽人</div></div>
+            <div class="cat-item"><div class="cat-icon">⋯</div><div class="cat-name">全部</div></div>
+          </div>
+
+          <!-- 2. Banner：周末搞定入口 -->
+          <div class="banner" id="bannerEntry" onclick="focusInput()">
+            <div class="banner-l">
+              <div class="banner-eyebrow">AI 一句话规划</div>
+              <div class="banner-title"><em>周末搞定</em>·把这场局安排到能出门</div>
+              <div class="banner-sub">理解 → 检索 → 排期 → 订座 → 异常补救</div>
+            </div>
+            <div class="banner-cta">立即体验</div>
+            <div class="banner-mascot">🐹</div>
+          </div>
+
+          <!-- 3. 输入卡 -->
+          <div class="input-card" id="inputCard">
+            <div class="input-card-head">
+              <div class="dot">1</div>
+              <div class="h">说一句话</div>
+              <div class="s">AI 帮你听懂</div>
+            </div>
+            <textarea class="input-area" id="goalArea" placeholder="例如：今天下午和朋友4个人出去玩，想拍照吃饭不要太累，人均150，晚上别排队"></textarea>
+            <div class="chips">
+              <span class="chip" onclick="useExample(0)">🎏 朋友4人局</span>
+              <span class="chip" onclick="useExample(1)">👶 亲子局</span>
+              <span class="chip" onclick="useExample(2)">🛋 宅家局</span>
+              <span class="chip" onclick="useExample(3)">💕 情侣约会</span>
+            </div>
+            <button class="btn-primary" id="btnGo" onclick="startPlanning()">帮我安排 →</button>
+          </div>
+
+          <!-- 4. 解析卡 -->
+          <div class="parse-card reveal hidden" id="parseCard">
+            <div class="card-h">
+              <div class="num">2</div>
+              <div class="t">我听懂了</div>
+              <div class="s">结构化需求</div>
+            </div>
+            <div class="parse-grid" id="parseGrid"></div>
+          </div>
+
+          <!-- 4.5 追问卡（信息缺失时出现，在方案前） -->
+          <div class="clarify-card reveal hidden" id="clarifyCard">
+            <div class="card-h">
+              <div class="num">!</div>
+              <div class="t">还差几个关键信息</div>
+              <div class="s">补全后再出方案</div>
+            </div>
+            <div class="clarify-note" id="clarifyNote"></div>
+            <div id="clarifyForm"></div>
+            <button class="btn-primary" id="btnRefine" onclick="submitClarify()">补充完了，去规划 →</button>
+          </div>
+
+          <!-- 5. 方案区 -->
+          <div class="plan-list reveal hidden" id="plansWrap"></div>
+          <div class="share-card reveal hidden" id="voteCard"></div>
+
+          <!-- 6. 已确认方案 -->
+          <div class="plan-list reveal hidden" id="confirmedWrap"></div>
+
+          <!-- 7. 增值推荐 -->
+          <div class="addon-card reveal hidden" id="addonCard"></div>
+
+          <!-- 8. 账单 -->
+          <div class="bill-card reveal hidden" id="billCard"></div>
+
+          <!-- 9. 分享卡 -->
+          <div class="share-card reveal hidden" id="shareCard">
+            <div class="card-h">
+              <div class="num">4</div>
+              <div class="t">发到群里</div>
+              <div class="s">复制即用</div>
+            </div>
+            <div class="share-text" id="shareText"></div>
+            <button class="btn-copy" id="btnCopy" onclick="copyShare()">复制这段消息</button>
+          </div>
+
+          <div class="share-card reveal hidden" id="friendFeedbackCard">
+            <div class="card-h">
+              <div class="num">5</div>
+              <div class="t">好友反馈</div>
+              <div class="s">点击后局部重排</div>
+            </div>
+            <div class="share-text">方案发出后，朋友可能会补一句约束。这里用模拟群聊把“协同确认及反馈闭环”跑出来。</div>
+            <div class="friend-feedback" id="friendFeedbackList"></div>
+          </div>
+
+          <!-- 10. 半路救援区 -->
+          <div class="exc-card reveal hidden" id="excCard">
+            <div class="card-h">
+              <div class="num">6</div>
+              <div class="t">现场情况变了</div>
+              <div class="s">半路救援 · 局部重排</div>
+            </div>
+            <div class="rescue-note" id="rescueNote">朋友临时反馈、到店发现满座、票卖完、时间太赶，都不需要推翻整条行程。系统只替换坏掉的那一环，保留其它已确认节点。</div>
+            <div id="excResultWrap"></div>
+            <div class="exc-btns" id="excBtns"></div>
+          </div>
+
+          <div style="height:60px"></div>
+        </div>
+
+        <!-- 底部 Tab Bar（美团式）-->
+        <div class="tabbar">
+          <div class="tab active"><div class="tab-icon">🏠</div><div>首页</div></div>
+          <div class="tab"><div class="tab-icon">🛍</div><div>团购</div></div>
+          <div class="tab"><div class="tab-icon">🎫</div><div>到店</div></div>
+          <div class="tab"><div class="tab-icon">📋</div><div>订单</div></div>
+          <div class="tab"><div class="tab-icon">👤</div><div>我的</div></div>
+        </div>
+
+      </div><!-- /.phone-screen -->
+    </div><!-- /.phone -->
+  </div>
+
+  <!-- ═════════ 右栏：实时日志 + agent 行为解释 ═════════ -->
+<aside class="side">
+
+    <div class="side-card">
+      <div class="side-eyebrow">当前 · NEXT</div>
+      <div class="side-title">当前方案摘要</div>
+      <div class="side-sub" id="sideNext">先在左侧说出你的需求，我会把主任务和可选推荐分开处理。</div>
+      <div class="expl" id="sideSummary">
+        <div class="expl-row"><span class="expl-num">1</span><div><b>下一步</b>：等待输入。</div></div>
+      </div>
+      <details class="judge-panel">
+        <summary>评委模式：展开执行日志</summary>
+        <div class="log-body" id="logBody">
+          <div class="log-empty" id="logEmpty">还没有开始<br>在左边手机上说出你的需求吧 →</div>
+        </div>
+        <div class="expl judge-note">
+          <div class="expl-row"><span class="expl-num">A</span><div><b>理解</b>：一句话解析后由 Python 追问补齐，不让大模型决定工具顺序。</div></div>
+          <div class="expl-row"><span class="expl-num">B</span><div><b>执行</b>：选择、投票、预约、账单、分享分阶段推进。</div></div>
+          <div class="expl-row"><span class="expl-num">C</span><div><b>补救</b>：满座 / 售罄 / 时间冲突只替换坏节点。</div></div>
+        </div>
+      </details>
+    </div>
+
+  </aside>
+</div>
+
+<div class="foot">
+  本演示运行在 FastAPI 服务上，业务逻辑全部在 <code>agent/</code>，前端是单文件原生 HTML（不用构建工具）。
+  数据为 Mock，永不调用真实美团接口。LLM 只在 <code>parse_request</code> 与 <code>compose_share_card</code> 两处出场。
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   全局状态 + 与后端的通信
+   ════════════════════════════════════════════════════════════════════ */
+const API = window.location.origin || "http://127.0.0.1:8000";
+const STATE = {session:null, busy:false, lastDiff:null, finalConfirmed:false, selectedAddon:null};
+
+const EXAMPLES = [
+  "今天下午我想去玩个剧本杀，我这边有四个朋友，人均100块钱左右，玩个欢乐盒装本就可以",
+  "我好困，不想动，但是又菜又爱玩，人均80",
+  "今天下午两点想和朋友出去逛逛街，吃个饭，你有什么推荐吗",
+  "今天下午想带5岁的孩子和老婆出去玩几个小时，老婆在减肥要清淡点，别离家太远",
+];
+
+const PREF_NAME = {
+  photo:"想拍照", good_food:"想吃好", easy_pace:"不想太累",
+  culture:"想文艺一点", kid_friendly:"要适合孩子", light_food:"要清淡点",
+  relax:"想轻松",
+};
+const HL_NAME = {
+  no_evening_queue:"不想排队", stay_near:"别离家太远", kid_safe:"安全适龄",
+};
+
+/* ===== 工具：HTTP ===== */
+async function post(path, body){
+  try{
+    const r = await fetch(API+path,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body||{})
+    });
+    return await r.json();
+  }catch(e){
+    return {ok:false, error:String(e)};
+  }
+}
+async function get(path){
+  try{
+    const r = await fetch(API+path);
+    return await r.json();
+  }catch(e){
+    return {ok:false, error:String(e)};
+  }
+}
+
+/* ===== 工具：reveal ===== */
+function show(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.remove("hidden");
+  requestAnimationFrame(()=>el.classList.add("on"));
+}
+function hideAll(ids){
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.classList.add("hidden"); el.classList.remove("on"); }
+  });
+}
+function setConfirmButtonsDisabled(disabled){
+  document.querySelectorAll(".btn-confirm").forEach(btn=>{ btn.disabled = !!disabled; });
+}
+
+function updateSideStatus(next, rows){
+  const sideNext = document.getElementById("sideNext");
+  const sideSummary = document.getElementById("sideSummary");
+  if(sideNext) sideNext.textContent = next || "继续在左侧确认下一步。";
+  if(sideSummary && rows){
+    sideSummary.innerHTML = rows.map((r,i)=>`
+      <div class="expl-row"><span class="expl-num">${i+1}</span><div><b>${r.title}</b>：${r.body}</div></div>
+    `).join("");
+  }
+}
+
+/* ===== 日志渲染 ===== */
+function clearLogs(){
+  document.getElementById("logBody").innerHTML =
+    '<div class="log-empty" id="logEmpty">还没有开始<br>在左边手机上说出你的需求吧 →</div>';
+}
+function streamLogs(logs, startIdx, done){
+  // 把 logs[startIdx:] 一条条点亮，每条 280ms。所有 log 已经在后端生成完了，前端只做"播放"。
+  const body = document.getElementById("logBody");
+  const empty = document.getElementById("logEmpty");
+  if(empty) empty.remove();
+
+  let i = startIdx || 0;
+  (function next(){
+    if(i >= logs.length){ if(done) done(); return; }
+    const e = logs[i];
+    const it = document.createElement("div");
+    it.className = "log-item";
+    it.innerHTML = `<div class="log-dot ${e.status}"></div>
+      <div class="log-txt"><div class="log-step">${e.step}</div>
+      <div class="log-msg">${e.message}</div></div>
+      <div class="log-time">${(e.time||"").slice(0,8)}</div>`;
+    body.appendChild(it);
+    body.scrollTop = body.scrollHeight;
+    i++;
+    setTimeout(next, 280);
+  })();
+}
+
+/* ===== 解析卡 ===== */
+function renderParse(req, explicit_categories){
+  const want = (req.preferences||[]).map(p=>`<span class="t">${PREF_NAME[p]||p}</span>`).join("");
+  const avoid = (req.hard_limits||[]).length
+    ? (req.hard_limits||[]).map(a=>`<span class="t avoid">${HL_NAME[a]||a}</span>`).join("")
+    : `<span class="t avoid">无明确避免</span>`;
+  const catChips = (explicit_categories||[]).length
+    ? (explicit_categories||[]).map(c=>`<span class="t" style="background:#FFE680;color:#5A4200">🎯 ${c.category}</span>`).join("")
+    : "";
+  const safety = (req.safety_flags||[]).length
+    ? (req.safety_flags||[]).map(x=>`<span class="t avoid">${{
+      no_spicy:"不吃辣", no_alcohol:"不喝酒", cannot_ice:"不能冰", not_too_sweet:"不要太甜", body_uncomfortable:"身体不适", kid_safe:"适合孩子"
+    }[x]||x}</span>`).join("")
+    : "";
+  const missing = (req.missing_fields||[]).length
+    ? (req.missing_fields||[]).map(x=>`<span class="t avoid">${{
+      party_size:"人数", start_time:"时间", budget_per_person:"预算", script_style:"剧本类型", window_hours:"可用时长", home_area:"出发区域", distance_tolerance:"距离偏好"
+    }[x]||x}</span>`).join("")
+    : `<span class="t">信息已够生成方案</span>`;
+  document.getElementById("parseGrid").innerHTML = `
+    <div class="parse-row full"><div class="parse-k">我理解你的目标</div><div class="parse-v">${req.goal_summary || "帮你把这次安排落地"}</div></div>
+    <div class="parse-row"><div class="parse-k">人数</div><div class="parse-v">${req.party_size} 人</div></div>
+    <div class="parse-row"><div class="parse-k">出发</div><div class="parse-v">${req.start_time} · ${req.window_hours} 小时</div></div>
+    <div class="parse-row"><div class="parse-k">人均预算</div><div class="parse-v" style="color:var(--price)">¥${req.budget_per_person}</div></div>
+    ${catChips ? `<div class="parse-row full"><div class="parse-k">点名要</div><div class="tags">${catChips}</div></div>` : ""}
+    <div class="parse-row full"><div class="parse-k">想要</div><div class="tags">${want}</div></div>
+    <div class="parse-row full"><div class="parse-k">避免</div><div class="tags">${avoid}${safety}</div></div>
+    <div class="parse-row full"><div class="parse-k">还需要确认</div><div class="tags">${missing}</div></div>`;
+  updateSideStatus("已理解目标，下一步确认缺失信息或选择方案。", [
+    {title:"目标", body:req.goal_summary || "周末安排"},
+    {title:"已记住", body:`${catChips ? (explicit_categories||[]).map(c=>c.category).join("、") : "未点名品类"} · ¥${req.budget_per_person}/人`},
+    {title:"下一步", body:(req.missing_fields||[]).length ? "先补齐关键信息" : "选择一个候选方案"}
+  ]);
+}
+
+/* ===== 追问卡 ===== */
+const CLARIFY_ANSWERS = {};   // 用户选择缓存
+function renderClarify(clarList, explicitCats, rawText){
+  CLARIFY_ANSWERS_RESET();
+  const catStr = (explicitCats||[]).map(c=>c.category).join("、");
+  const noteHtml = catStr
+    ? `已记住你想<b>「${catStr}」</b>。但还差几个关键信息，我先确认一下，不然规划出来怕不合心意：`
+    : `你说的「${rawText||''}」信息有点少，我先确认几件事，不然规划出来怕不合心意：`;
+  document.getElementById("clarifyNote").innerHTML = noteHtml;
+
+  const html = (clarList||[]).map((c, qi)=>{
+    const opts = (c.options||[]).map(o=>{
+      const v = (typeof o === "object") ? o.value : o;
+      const l = (typeof o === "object") ? o.label : o;
+      return `<button class="opt" data-key="${c.key}" data-val="${v}" onclick="pickClarify(this)">${l}</button>`;
+    }).join("");
+    return `<div class="clarify-q" data-key="${c.key}">
+      <div class="ql">${c.question}</div>
+      <div class="chips">${opts}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("clarifyForm").innerHTML = html;
+}
+function CLARIFY_ANSWERS_RESET(){ for(const k in CLARIFY_ANSWERS) delete CLARIFY_ANSWERS[k]; }
+function pickClarify(btn){
+  const key = btn.dataset.key;
+  const val = btn.dataset.val;
+  CLARIFY_ANSWERS[key] = /^-?\d+$/.test(val) ? Number(val) : val;
+  // 高亮该问题下的所有按钮，仅当前激活
+  document.querySelectorAll(`.clarify-q[data-key="${key}"] .opt`).forEach(b=>{
+    b.classList.toggle("active", b === btn);
+  });
+}
+async function submitClarify(){
+  // 校验全部回答
+  const expected = Array.from(document.querySelectorAll(".clarify-q")).map(el=>el.dataset.key);
+  const missing = expected.filter(k => !(k in CLARIFY_ANSWERS));
+  if(missing.length){
+    alert("还没选：" + missing.join("、"));
+    return;
+  }
+  const btn = document.getElementById("btnRefine");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 重新规划…';
+  STATE.lastDiff = null;
+  STATE.finalConfirmed = false;
+
+  const beforeLen = (STATE.session?.logs || []).length;
+  const res = await post("/refine", {answers: CLARIFY_ANSWERS});
+  if(!res.ok){
+    btn.disabled = false; btn.textContent = "补充完了，去规划 →";
+    alert("失败：" + (res.error||"未知")); return;
+  }
+  STATE.session = res.session;
+  streamLogs(res.session.logs, beforeLen, ()=>{
+    // 隐藏追问卡
+    hideAll(["clarifyCard"]);
+    // 重渲染解析卡（用更新后的 request）
+    renderParse(res.session.request, res.session.explicit_categories);
+
+    // 显示方案
+    const wrap = document.getElementById("plansWrap");
+    wrap.innerHTML = (res.session.plans||[]).map((p,i)=>planCardHTML(p,i)).join("");
+    show("plansWrap");
+
+    btn.disabled = false; btn.textContent = "补充完了，去规划 →";
+    const sc = document.getElementById("scroller");
+    sc.scrollTo({top:document.getElementById("plansWrap").offsetTop - 8, behavior:"smooth"});
+  });
+}
+
+/* ===== 方案 / 时间轴 渲染 ===== */
+function ringHTML(score){
+  return `<div class="score-ring" style="--p:${score}">
+    <div class="score-ring-in"><div class="score-num">${score}</div><div class="score-lbl">综合分</div></div>
+  </div>`;
+}
+
+function tlNodeHTML(s, opts){
+  opts = opts || {};
+  if(s.kind === "travel"){
+    if(!s.minutes) return ""; // 线上节点跳过 travel
+    const mode = s.mode === "walk" ? "步行" : "打车";
+    return `<div class="tl-node travel">
+      <div class="tl-travel">${mode}约 ${s.minutes} 分钟（${s.from}→${s.to}）</div>
+    </div>`;
+  }
+  if(s.kind === "delivery"){
+    const tags = (s.tags||[]).slice(0,3).map(t=>`<span class="tl-tag">${t}</span>`).join("");
+    return `<div class="tl-node">
+      <div class="tl-time">${s.start}</div>
+      <div class="tl-card">
+        <div class="tl-img">${s.image||"🎂"}</div>
+        <div class="tl-body">
+          <div class="tl-name">${s.name} <span class="badge alt">送达餐厅</span></div>
+          <div class="tl-meta"><span class="area">送到 ${s.target_name||"餐厅"}</span><span class="star">★ ${s.rating}</span><span><b>¥${s.cost}</b>/人</span></div>
+          ${tags ? `<div class="tl-tags">${tags}</div>` : ""}
+          <div class="tl-deal">提前约 20 分钟送达，入座后直接可用</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  const isChanged = opts.changed;
+  const wasLine = isChanged && opts.before
+    ? `<div class="tl-was">原：${opts.before.name}（${opts.beforeReason||"已不可用"}）</div>` : "";
+  const promo = s.is_promoted
+    ? `<span class="mt-promo-tag">推广</span>` : "";
+  const replaceBadge = isChanged ? `<span class="badge replace">已替换</span>` : "";
+  const tags = (s.tags||[]).slice(0,3).map(t=>`<span class="tl-tag">${t}</span>`).join("");
+  const deal = s.group_deal
+    ? `<div class="tl-deal">${s.group_deal.name} ¥${s.group_deal.price}（省 ¥${s.group_deal.save}）</div>` : "";
+  let waitText = "";
+  if(s.queue_minutes > 0){
+    if(s.kind === "restaurant") waitText = `排队约 ${s.queue_minutes} 分钟`;
+    else if(s.kind === "activity" && s.category === "电影院") waitText = `出票/入场约 ${s.queue_minutes} 分钟`;
+    else waitText = `等候约 ${s.queue_minutes} 分钟`;
+  }
+  const meta = s.kind === "stayin"
+    ? `<span class="area">线上</span><span class="star">★ ${s.rating}</span><span><b>¥${s.cost}</b></span>`
+    : `<span class="area">${s.area}</span><span class="star">★ ${s.rating}</span><span><b>¥${s.cost}</b>/人</span>`
+      + (waitText ? `<span style="color:var(--warn)">${waitText}</span>` : "");
+  return `<div class="tl-node ${isChanged?'changed':''}">
+    <div class="tl-time">${s.start} – ${s.end}</div>
+    <div class="tl-card">
+      <div class="tl-img">${s.image||"📍"}</div>
+      <div class="tl-body">
+        <div class="tl-name">${s.name} ${promo} ${replaceBadge}</div>
+        <div class="tl-meta">${meta}</div>
+        ${tags ? `<div class="tl-tags">${tags}</div>` : ""}
+        ${deal}
+        ${wasLine}
+      </div>
+    </div>
+  </div>`;
+}
+
+function timelineHTML(plan, opts){
+  opts = opts || {};
+  return (plan.steps||[]).map((s, i)=>{
+    let changed = false, before=null, beforeReason="";
+    if(opts.diff){
+      const d = opts.diff;
+      if(d.changed_kind === "restaurant" && s.kind === "restaurant"){
+        changed = true; before = d.before; beforeReason = "已满座";
+      } else if(d.changed_kind === "activity" && s.kind === "activity"){
+        changed = true; before = d.before; beforeReason = "门票售罄";
+      }
+    }
+    return tlNodeHTML(s, {changed, before, beforeReason});
+  }).join("");
+}
+
+function commercialHTML(plan){
+  const list = plan.commercial_recommendations || [];
+  if(!list.length) return "";
+  return `<div class="commercial-list">${list.map(x=>`
+    <div class="commercial-item">
+      <b>${x.title}：</b>${x.name}（${x.category} · ${x.area}）
+      <span>¥${x.price}</span><em>★ ${x.rating}</em><br>${x.reason||""}
+    </div>`).join("")}</div>`;
+}
+
+function planCardHTML(plan, idx){
+  const tag = idx === 0 ? "推荐 A" : "对照 B";
+  if(plan.unavailable){
+    const opts = (plan.relaxation_options||[]).map(x=>`<span class="risk">${x}</span>`).join("");
+    return `<div class="plan" id="plan-${idx}">
+      <div class="plan-rank">需确认</div>
+      <div class="plan-head">
+        <div>
+          <div class="plan-title">${plan.title}</div>
+          <div class="plan-focus">${plan.focus}</div>
+        </div>
+        ${ringHTML(0)}
+      </div>
+      <div class="plan-reason"><b>原因：</b>${plan.reason}</div>
+      <div class="plan-risks">${opts}</div>
+      <div class="plan-foot">
+        <div class="plan-cost-num">先放宽条件后再推荐</div>
+        <button class="btn-confirm" disabled>需要补充/放宽</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="plan" id="plan-${idx}">
+    <div class="plan-rank">${tag}</div>
+    <div class="plan-head">
+      <div>
+        <div class="plan-title">${plan.title}</div>
+        <div class="plan-focus">${plan.focus}</div>
+      </div>
+      ${ringHTML(plan.score.total)}
+    </div>
+    <div class="timeline">${timelineHTML(plan)}</div>
+    <div class="plan-reason"><b>推荐理由：</b>${plan.reason}</div>
+    ${(plan.risks||[]).length ? `<div class="plan-risks">${plan.risks.map(r=>`<span class="risk">⚠ ${r}</span>`).join("")}</div>` : ""}
+    <div class="plan-foot">
+      <div class="plan-cost-num">人均 <b>¥${plan.total_cost_per_person}</b><span>· ${(plan.total_minutes/60).toFixed(1)}h</span></div>
+      <button class="btn-confirm" onclick="selectPlan(${idx})">选这个方案</button>
+    </div>
+  </div>`;
+}
+
+function confirmedCardHTML(plan, diff, finalized){
+  const footAction = diff
+    ? (finalized
+      ? `<span class="locked-badge">✓ 调整后已确认</span>`
+      : `<button class="btn-confirm" onclick="finalizeAdjustedPlan()">确认调整后方案</button>`)
+    : `<span class="locked-badge">✓ 已模拟预订</span>`;
+  return `<div class="plan locked">
+    <div class="plan-rank">已确认</div>
+    <div class="plan-head">
+      <div>
+        <div class="plan-title">${plan.title}</div>
+        <div class="plan-focus">${plan.focus}</div>
+      </div>
+      ${ringHTML(plan.score.total)}
+    </div>
+    <div class="timeline">${timelineHTML(plan, {diff})}</div>
+    <div class="plan-reason"><b>推荐理由：</b>${plan.reason}</div>
+    ${(plan.risks||[]).length ? `<div class="plan-risks">${plan.risks.map(r=>`<span class="risk">⚠ ${r}</span>`).join("")}</div>` : ""}
+    <div class="plan-foot">
+      <div class="plan-cost-num">人均 <b>¥${plan.total_cost_per_person}</b><span>· ${(plan.total_minutes/60).toFixed(1)}h</span></div>
+      ${footAction}
+    </div>
+  </div>`;
+}
+
+/* ===== 增值推荐 / 账单 ===== */
+function renderAddon(addon){
+  if(!addon){ document.getElementById("addonCard").classList.add("hidden"); return; }
+  STATE.selectedAddon = null;
+  document.getElementById("addonCard").innerHTML = `
+    <div class="addon-emoji">${addon.image||"☕"}</div>
+    <div class="addon-body">
+      <div class="addon-title">可选加购 · 不自动下单</div>
+      <div class="addon-name">${addon.name} ${addon.is_promoted?'<span class="mt-promo-tag">推广</span>':""}</div>
+      <div class="addon-meta">${addon.category} · ${addon.area} · ★ ${addon.rating} · <b>¥${addon.price}</b> · 用户确认后才加入账单</div>
+      <div class="vote-actions" style="margin-top:8px">
+        <button class="btn-secondary" onclick="skipAddon()">跳过</button>
+        <button class="btn-confirm" onclick="joinAddon()">加入账单</button>
+      </div>
+    </div>`;
+  show("addonCard");
+}
+
+function skipAddon(){
+  STATE.selectedAddon = null;
+  renderBill(STATE.session.chosen, null);
+  updateSideStatus("已跳过可选加购，主行程不受影响。", [
+    {title:"状态", body:"可选推荐未加入账单"},
+    {title:"下一步", body:"查看账单或复制群聊消息"}
+  ]);
+}
+
+function joinAddon(){
+  STATE.selectedAddon = STATE.session?.addon || null;
+  renderBill(STATE.session.chosen, STATE.selectedAddon);
+  updateSideStatus("已加入可选加购，可以查看更新后的账单。", [
+    {title:"状态", body:"可选推荐已加入 Mock 账单"},
+    {title:"下一步", body:"一键付款 Mock 或 AA 分账 Mock"}
+  ]);
+}
+
+function renderBill(plan, addon){
+  const billRows = [];
+  (plan.steps||[]).forEach(s=>{
+    if(s.kind === "activity" || s.kind === "restaurant" || s.kind === "stayin" || s.kind === "delivery" || s.kind === "addon"){
+      billRows.push(`<div class="bill-row"><span>${s.name}（${s.category}）</span><span>¥${s.cost}</span></div>`);
+    }
+  });
+  let totalCost = plan.total_cost_per_person || 0;
+  if(addon){
+    billRows.push(`<div class="bill-row"><span>${addon.name}（顺路加）</span><span>¥${addon.price}</span></div>`);
+    totalCost += addon.price;
+  }
+  billRows.push(`<div class="bill-row total"><span>人均合计</span><span><b>¥${totalCost}</b></span></div>`);
+  document.getElementById("billCard").innerHTML = `
+    <div class="card-h">
+      <div class="num">3</div>
+      <div class="t">账单</div>
+      <div class="s">人均 · Mock</div>
+    </div>
+    <div class="bill-rows">${billRows.join("")}</div>
+    <div class="vote-actions" style="margin-top:10px">
+      <button class="btn-secondary">一键付款 Mock</button>
+      <button class="btn-secondary">AA 分账 Mock</button>
+    </div>`;
+  show("billCard");
+}
+
+function renderVoteCard(voteRoom){
+  const card = document.getElementById("voteCard");
+  if(!voteRoom || !voteRoom.link){
+    card.classList.add("hidden");
+    card.classList.remove("on");
+    return;
+  }
+  const options = voteRoom.options || [];
+  const votes = voteRoom.votes || {};
+  const totalVotes = voteRoom.total_votes || Object.values(votes).reduce((a,b)=>a+Number(b||0),0);
+  const winner = voteRoom.winner || null;
+  const winnerText = winner && totalVotes > 0
+    ? `当前领先：<b>${winner.title}</b>（${winner.votes || 0} 票）`
+    : "还没有朋友投票，先发到群里等大家确认。";
+  const voteRows = options.map(o=>{
+    const count = votes[String(o.index)] || 0;
+    return `<div class="vote-row"><span>方案 ${Number(o.index)+1} · ${o.title}</span><em>${count} 票</em></div>`;
+  }).join("");
+  const confirmDisabled = totalVotes > 0 ? "" : "disabled";
+  card.innerHTML = `
+    <div class="card-h">
+      <div class="num">投</div>
+      <div class="t">朋友投票</div>
+      <div class="s">${voteRoom.deadline_minutes || 20} 分钟内</div>
+    </div>
+    <div class="share-text">多人局已生成投票链接：\n${voteRoom.link}\n朋友投完后，当前领先方案会回到发起人这里确认。</div>
+    <div class="vote-summary">
+      <div>${winnerText}</div>
+      ${voteRows ? `<div class="vote-bars">${voteRows}</div>` : ""}
+    </div>
+    <div class="vote-actions">
+      <button class="btn-secondary" onclick="navigator.clipboard && navigator.clipboard.writeText('${voteRoom.link}')">复制链接</button>
+      <button class="btn-secondary" onclick="refreshVote('${voteRoom.room_id}')">刷新票数</button>
+      <button class="btn-secondary" onclick="simulateVote('${voteRoom.room_id}')">模拟朋友投票</button>
+      <button class="btn-confirm" ${confirmDisabled} onclick="confirmWinner('${voteRoom.room_id}')">确认领先方案</button>
+    </div>`;
+  show("voteCard");
+}
+
+async function refreshVote(roomId){
+  if(!roomId) return;
+  const res = await get(`/vote/${roomId}`);
+  if(!res.ok){ alert(res.message || res.error || "刷新失败"); return; }
+  STATE.session = STATE.session || {};
+  STATE.session.vote_room = res.room;
+  renderVoteCard(res.room);
+}
+
+async function simulateVote(roomId){
+  const current = await get(`/vote/${roomId}`);
+  if(!current.ok){ alert(current.message || current.error || "投票房间不存在"); return; }
+  const opts = current.room.options || [];
+  if(!opts.length) return;
+  const target = (opts[1] || opts[0]).index;
+  const backup = opts[0].index;
+  const voters = [
+    ["小李", target],
+    ["阿岚", target],
+    ["小周", backup],
+  ];
+  for(const [voter, plan_index] of voters){
+    await post(`/vote/${roomId}`, {voter, plan_index});
+  }
+  await refreshVote(roomId);
+}
+
+async function confirmWinner(roomId){
+  const res = await get(`/vote/${roomId}`);
+  if(!res.ok){ alert(res.message || res.error || "投票房间不存在"); return; }
+  const room = res.room || {};
+  const winner = room.winner;
+  const totalVotes = room.total_votes || Object.values(room.votes || {}).reduce((a,b)=>a+Number(b||0),0);
+  if(!winner || totalVotes <= 0){
+    alert("还没有朋友投票，先发给朋友确认一下。");
+    return;
+  }
+  await selectPlan(Number(winner.index));
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   主流程
+   ════════════════════════════════════════════════════════════════════ */
+function currentPlan(){
+  return STATE.session?.chosen || (STATE.session?.plans || [])[0] || null;
+}
+
+function planHasKind(plan, kind){
+  return !!(plan?.steps || []).some(s => s.kind === kind);
+}
+
+function firstActivityCategory(plan){
+  const step = (plan?.steps || []).find(s => s.kind === "activity");
+  return step?.category || "";
+}
+
+function isMovieOnlyPlan(plan){
+  const kinds = (plan?.steps || []).filter(s => s.kind !== "travel").map(s => s.kind);
+  return firstActivityCategory(plan) === "电影院" && !kinds.includes("restaurant");
+}
+
+function renderFriendFeedback(){
+  if(!STATE.session) return;
+  const plan = currentPlan();
+  const movieOnly = isMovieOnlyPlan(plan);
+  const hasRestaurant = planHasKind(plan, "restaurant");
+  const list = document.getElementById("friendFeedbackList");
+  const confirmed = movieOnly
+    ? `
+      <div class="feedback-ok"><b>小李</b> 已确认：电影可以，我直接到影院。</div>
+      <div class="feedback-ok"><b>阿岚</b> 已确认：这个场次 OK。</div>`
+    : `
+      <div class="feedback-ok"><b>小李</b> 已确认：方案可行。</div>
+      <div class="feedback-ok"><b>阿岚</b> 已确认：先按这个走。</div>`;
+  const actions = [
+    `<button class="friend-msg" onclick="triggerExc('time_conflict')">
+      <b>小李</b><span>${movieOnly ? "这场能不能晚一点？我路上赶不过去。" : "时间有点赶，能不能晚一点？"}</span><em>触发：动态时间分配</em>
+    </button>`,
+    `<button class="friend-msg" onclick="triggerExc('ticket_soldout')">
+      <b>阿岚</b><span>${movieOnly ? "如果这个场次没票，就换同商圈另一场。" : "活动场次如果没了，就换同类活动。"}</span><em>触发：活动节点局部重排</em>
+    </button>`
+  ];
+  if(hasRestaurant){
+    actions.push(`<button class="friend-msg" onclick="triggerExc('restaurant_full')">
+      <b>阿岚</b><span>这家餐厅饭点会不会排队？能换个更稳的吗？</span><em>触发：餐饮节点局部重排</em>
+    </button>`);
+  }
+  list.innerHTML = `<div class="feedback-status">${confirmed}</div>${actions.join("")}`;
+  const card = document.getElementById("friendFeedbackCard");
+  card.classList.remove("hidden");
+  card.classList.add("on");
+}
+
+function renderRescueOptions(){
+  const plan = currentPlan();
+  const movieOnly = isMovieOnlyPlan(plan);
+  const hasRestaurant = planHasKind(plan, "restaurant");
+  const note = document.getElementById("rescueNote");
+  if(note){
+    note.textContent = movieOnly
+      ? "朋友临时反馈、电影票售罄、场次变化、时间太赶，都不需要推翻整条行程。系统只替换场次或顺延时间，保留其它已确认节点。"
+      : "朋友临时反馈、到店发现满座、票卖完、时间太赶，都不需要推翻整条行程。系统只替换坏掉的那一环，保留其它已确认节点。";
+  }
+  const buttons = [];
+  if(hasRestaurant){
+    buttons.push(`<button class="exc-btn" id="btn-exc-rest" onclick="triggerExc('restaurant_full')">
+      <span class="exc-emoji">🍽</span>
+      <div class="exc-l"><div class="exc-t">到了发现餐厅满座</div><div class="exc-d">同商圈换备选，活动不动</div></div>
+    </button>`);
+  }
+  buttons.push(`<button class="exc-btn" id="btn-exc-tick" onclick="triggerExc('ticket_soldout')">
+    <span class="exc-emoji">🎟</span>
+    <div class="exc-l"><div class="exc-t">${movieOnly ? "电影票/场次不可用" : "活动门票/场次售罄"}</div><div class="exc-d">${movieOnly ? "换同商圈影院或相邻场次" : "换同类活动，其他节点不动"}</div></div>
+  </button>`);
+  buttons.push(`<button class="exc-btn" id="btn-exc-time" onclick="triggerExc('time_conflict')">
+    <span class="exc-emoji">⏰</span>
+    <div class="exc-l"><div class="exc-t">朋友说时间太赶</div><div class="exc-d">整条行程顺延 1 小时</div></div>
+  </button>`);
+  document.getElementById("excBtns").innerHTML = buttons.join("");
+}
+
+function focusInput(){ document.getElementById("goalArea").focus(); }
+function useExample(i){
+  document.getElementById("goalArea").value = EXAMPLES[i];
+  document.getElementById("goalArea").focus();
+}
+
+async function startPlanning(){
+  if(STATE.busy) return;
+  // 同步两个输入框（顶部搜索 + 输入卡）
+  const top = document.getElementById("goalInput").value.trim();
+  const area = document.getElementById("goalArea").value.trim();
+  const text = top || area || EXAMPLES[0];
+  document.getElementById("goalArea").value = text;
+  document.getElementById("goalInput").value = "";
+
+  STATE.busy = true;
+  STATE.lastDiff = null;
+  STATE.finalConfirmed = false;
+  STATE.selectedAddon = null;
+  hideAll(["parseCard","clarifyCard","plansWrap","voteCard","confirmedWrap","addonCard","billCard","shareCard","friendFeedbackCard","excCard"]);
+  document.getElementById("friendFeedbackList").innerHTML = "";
+  document.getElementById("excResultWrap").innerHTML = "";
+  document.getElementById("excBtns").innerHTML = "";
+  const btn = document.getElementById("btnGo");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 正在规划…';
+
+  // 调后端
+  const res = await post("/plan", {text});
+  if(!res.ok){
+    btn.disabled = false;
+    btn.textContent = "重新规划 →";
+    alert("规划失败：" + (res.error||"未知错误") + "\n（服务可能未启动，请运行 python server.py）");
+    STATE.busy = false;
+    return;
+  }
+  const sess = res.session;
+  STATE.session = sess;
+
+  // 把日志一条条点亮
+  streamLogs(sess.logs, 0, ()=>{
+    // 日志播完 → 先渲染解析卡
+    renderParse(sess.request, sess.explicit_categories);
+    show("parseCard");
+
+    // 判断是否进入追问中转
+    if(sess.mode === "needs_clarification" && (sess.clarifications_needed||[]).length){
+      renderClarify(sess.clarifications_needed, sess.explicit_categories, text);
+      setTimeout(()=>{
+        show("clarifyCard");
+        const sc = document.getElementById("scroller");
+        sc.scrollTo({top:document.getElementById("clarifyCard").offsetTop - 8, behavior:"smooth"});
+      }, 180);
+    } else {
+      // 信息齐 → 直接出方案
+      setTimeout(()=>{
+        const wrap = document.getElementById("plansWrap");
+        wrap.innerHTML = (sess.plans||[]).map((p,i)=>planCardHTML(p,i)).join("");
+        show("plansWrap");
+        const sc = document.getElementById("scroller");
+        sc.scrollTo({top:document.getElementById("parseCard").offsetTop - 8, behavior:"smooth"});
+      }, 180);
+    }
+
+    btn.disabled = false;
+    btn.textContent = "重新规划 →";
+    STATE.busy = false;
+  });
+}
+
+async function selectPlan(idx){
+  if(STATE.busy) return;
+  STATE.busy = true;
+  STATE.lastDiff = null;
+  STATE.finalConfirmed = false;
+  setConfirmButtonsDisabled(true);
+
+  // 隐藏候选方案
+  const wrap = document.getElementById("plansWrap");
+  wrap.classList.add("hidden");
+  wrap.classList.remove("on");
+  document.getElementById("voteCard").classList.add("hidden");
+  document.getElementById("voteCard").classList.remove("on");
+
+  const beforeLen = (STATE.session?.logs||[]).length;
+  const res = await post("/select", {plan_index:idx});
+  if(!res.ok){ STATE.busy=false; setConfirmButtonsDisabled(false); return; }
+  STATE.session = res.session;
+
+  streamLogs(res.session.logs, beforeLen, ()=>{
+    document.getElementById("confirmedWrap").innerHTML =
+      selectedCardHTML(res.session.chosen);
+    show("confirmedWrap");
+    updateSideStatus("已选中候选方案，下一步决定是否让朋友投票。", [
+      {title:"已选择", body:res.session.chosen?.title || "候选方案"},
+      {title:"下一步", body:"发给朋友投票，或跳过投票由发起人直接确认预约"}
+    ]);
+
+    const sc = document.getElementById("scroller");
+    sc.scrollTo({top:document.getElementById("confirmedWrap").offsetTop - 8, behavior:"smooth"});
+    STATE.busy = false;
+  });
+}
+
+function selectedCardHTML(plan){
+  const canVote = !!(STATE.session?.vote_room?.link);
+  return `<div class="plan locked">
+    <div class="plan-rank">已选择</div>
+    <div class="plan-head">
+      <div>
+        <div class="plan-title">${plan.title}</div>
+        <div class="plan-focus">${plan.focus}</div>
+      </div>
+      ${ringHTML(plan.score.total)}
+    </div>
+    <div class="timeline">${timelineHTML(plan)}</div>
+    <div class="plan-reason"><b>推荐理由：</b>${plan.reason}</div>
+    <div class="plan-foot">
+      <div class="plan-cost-num">人均 <b>¥${plan.total_cost_per_person}</b><span>· ${(plan.total_minutes/60).toFixed(1)}h</span></div>
+      <span class="locked-badge">等待最终确认</span>
+    </div>
+    <div class="vote-actions" style="margin-top:10px">
+      ${canVote ? `<button class="btn-secondary" onclick="showVoteStage()">发给朋友投票</button>` : ""}
+      <button class="btn-secondary" onclick="skipVoteStage()">跳过投票</button>
+      <button class="btn-confirm" onclick="bookSelectedPlan()">确认并预约</button>
+    </div>
+  </div>`;
+}
+
+function showVoteStage(){
+  renderVoteCard(STATE.session?.vote_room);
+  updateSideStatus("投票链接已生成，等朋友反馈后由发起人最终确认。", [
+    {title:"朋友确认", body:"复制链接或模拟朋友投票"},
+    {title:"下一步", body:"选定领先方案，再确认预约"}
+  ]);
+}
+
+function skipVoteStage(){
+  document.getElementById("voteCard").classList.add("hidden");
+  document.getElementById("voteCard").classList.remove("on");
+  updateSideStatus("已跳过朋友投票，发起人可以直接确认预约。", [
+    {title:"朋友确认", body:"本次跳过"},
+    {title:"下一步", body:"点击确认并预约"}
+  ]);
+}
+
+async function bookSelectedPlan(){
+  if(STATE.busy) return;
+  STATE.busy = true;
+  const beforeLen = (STATE.session?.logs||[]).length;
+  const res = await post("/confirm", {});
+  if(!res.ok){ STATE.busy=false; alert(res.error || res.message || "预约失败"); return; }
+  STATE.session = res.session;
+  streamLogs(res.session.logs, beforeLen, ()=>{
+    document.getElementById("confirmedWrap").innerHTML =
+      confirmedCardHTML(res.session.chosen, null);
+    show("confirmedWrap");
+    if(res.session.addon) renderAddon(res.session.addon);
+    renderBill(res.session.chosen, null);
+    document.getElementById("shareText").textContent = res.session.share_card || "";
+    show("shareCard");
+    renderFriendFeedback();
+    renderRescueOptions();
+    setTimeout(()=>show("excCard"), 150);
+    updateSideStatus("预约完成，可以查看账单或复制群聊消息。", [
+      {title:"状态", body:"主方案已模拟预约"},
+      {title:"可选推荐", body:res.session.addon ? "可跳过或加入账单" : "本次没有额外加购"},
+      {title:"下一步", body:"查看账单 / 复制群聊消息 / 异常补救演示"}
+    ]);
+    const sc = document.getElementById("scroller");
+    sc.scrollTo({top:document.getElementById("confirmedWrap").offsetTop - 8, behavior:"smooth"});
+    STATE.busy = false;
+  });
+}
+
+async function triggerExc(type){
+  if(STATE.busy || !STATE.session) return;
+  STATE.busy = true;
+  STATE.finalConfirmed = false;
+
+  const feedback = document.getElementById("friendFeedbackCard");
+  feedback.classList.add("hidden");
+  feedback.classList.remove("on");
+
+  ["btn-exc-rest","btn-exc-tick","btn-exc-time"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = true;
+  });
+
+  const beforeLen = (STATE.session?.logs||[]).length;
+  const plan = currentPlan();
+  const restaurant = (plan?.steps||[]).find(s=>s.kind==="restaurant");
+  const activity = (plan?.steps||[]).find(s=>s.kind==="activity");
+  const context = type === "restaurant_full" && restaurant
+    ? {type, location_state:"near_current_merchant", current_area:restaurant.area, current_merchant_id:restaurant.id, current_time:restaurant.start, completed_step_ids:(activity?[activity.id]:[])}
+    : {type, location_state:"before_departure"};
+  const res = await post("/exception", {type, context});
+  if(!res.ok){
+    STATE.busy = false;
+    ["btn-exc-rest","btn-exc-tick","btn-exc-time"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.disabled=false;
+    });
+    return;
+  }
+  STATE.session = res.session;
+  const exc = res.session.exception_result || {};
+  STATE.lastDiff = exc;
+
+  streamLogs(res.session.logs, beforeLen, ()=>{
+    document.getElementById("confirmedWrap").innerHTML =
+      confirmedCardHTML(res.session.chosen, exc, false);
+
+    // 顶上插一条调整说明
+    const isWarn = exc.changed_kind === "time";
+    document.getElementById("excResultWrap").innerHTML = `
+      <div class="exc-banner ${isWarn?'':''}">
+        <div class="exc-banner-icon">⚙</div>
+        <div><b>方案已局部调整</b>（未重做整体方案）<br>${exc.reason||""}</div>
+      </div>`;
+
+    // 同步分享卡 + 账单
+    document.getElementById("shareText").textContent = res.session.share_card || "";
+    renderBill(res.session.chosen, STATE.selectedAddon);
+    renderRescueOptions();
+
+    setTimeout(()=>{
+      ["btn-exc-rest","btn-exc-tick","btn-exc-time"].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.disabled = false;
+      });
+      STATE.busy = false;
+    }, 200);
+
+    const sc = document.getElementById("scroller");
+    sc.scrollTo({top:document.getElementById("excCard").offsetTop - 8, behavior:"smooth"});
+  });
+}
+
+function finalizeAdjustedPlan(){
+  if(!STATE.session || !STATE.lastDiff) return;
+  STATE.finalConfirmed = true;
+  document.getElementById("confirmedWrap").innerHTML =
+    confirmedCardHTML(STATE.session.chosen, STATE.lastDiff, true);
+  document.getElementById("excResultWrap").innerHTML = `
+    <div class="exc-banner">
+      <div class="exc-banner-icon">✓</div>
+      <div><b>调整后方案已由发起人确认</b><br>朋友反馈已经闭环，最新分享卡和账单同步完成。</div>
+    </div>`;
+  document.getElementById("shareText").textContent = STATE.session.share_card || "";
+  renderBill(STATE.session.chosen, null);
+  renderRescueOptions();
+  const sc = document.getElementById("scroller");
+  sc.scrollTo({top:document.getElementById("confirmedWrap").offsetTop - 8, behavior:"smooth"});
+}
+
+function copyShare(){
+  const txt = document.getElementById("shareText").textContent;
+  const btn = document.getElementById("btnCopy");
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(txt).then(()=>{
+      btn.textContent = "✓ 已复制到剪贴板";
+      setTimeout(()=>btn.textContent = "复制这段消息", 1800);
+    }).catch(()=>btn.textContent = "复制失败，请手动选择");
+  }else{
+    btn.textContent = "请手动选中复制";
+  }
+}
+
+async function resetAll(){
+  STATE.session = null; STATE.busy = false; STATE.lastDiff = null; STATE.finalConfirmed = false; STATE.selectedAddon = null;
+  CLARIFY_ANSWERS_RESET();
+  await post("/reset", {});
+  hideAll(["parseCard","clarifyCard","plansWrap","voteCard","confirmedWrap","addonCard","billCard","shareCard","friendFeedbackCard","excCard"]);
+  document.getElementById("excResultWrap").innerHTML = "";
+  document.getElementById("friendFeedbackList").innerHTML = "";
+  document.getElementById("excBtns").innerHTML = "";
+  document.getElementById("goalArea").value = "";
+  document.getElementById("goalInput").value = "";
+  clearLogs();
+  updateSideStatus("先在左侧说出你的需求，我会把主任务和可选推荐分开处理。", [
+    {title:"下一步", body:"等待输入。"}
+  ]);
+  ["btn-exc-rest","btn-exc-tick","btn-exc-time"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = false;
+  });
+  const btn = document.getElementById("btnGo");
+  btn.disabled = false;
+  btn.textContent = "帮我安排 →";
+  document.getElementById("scroller").scrollTo({top:0, behavior:"smooth"});
+}
+
+/* ===== 初始化 ===== */
+function tickClock(){
+  const d = new Date();
+  document.getElementById("phoneClock").textContent =
+    String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+tickClock();
+setInterval(tickClock, 30000);
+
+// 顶部搜索框回车 = 安排
+document.getElementById("goalInput").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){ e.preventDefault(); startPlanning(); }
+});
+
+// 预填一个示例方便点
+document.getElementById("goalArea").value = EXAMPLES[0];
+</script>
+</body>
+</html>
